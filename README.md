@@ -40,7 +40,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotWebSearch, diffbotExtract } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-4",
+  model: "anthropic/claude-sonnet-5",
   prompt: "What does Diffbot sell?",
   tools: {
     webSearch: diffbotWebSearch(),
