@@ -18,10 +18,15 @@ export const diffbotKnowledgeGraphInputSchema = z.object({
 
 export function diffbotKnowledgeGraph(
   options?: DiffbotKnowledgeGraphOptions,
-  sharedResolver?: () => DiffbotClient,
 ): Tool<z.infer<typeof diffbotKnowledgeGraphInputSchema>, JsonObject> {
-  const resolveClient = sharedResolver ?? createClientResolver(options);
+  return createKnowledgeGraphTool(options, createClientResolver(options));
+}
 
+/** Internal: lets `diffbotTools()` share one resolver across the bundle. */
+export function createKnowledgeGraphTool(
+  options: DiffbotKnowledgeGraphOptions | undefined,
+  resolveClient: () => DiffbotClient,
+): Tool<z.infer<typeof diffbotKnowledgeGraphInputSchema>, JsonObject> {
   return tool({
     description:
       "Query the Diffbot Knowledge Graph with a DQL expression " +

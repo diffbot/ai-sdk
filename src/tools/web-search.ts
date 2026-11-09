@@ -32,10 +32,15 @@ export const diffbotWebSearchInputSchema = z.object({
 
 export function diffbotWebSearch(
   options?: DiffbotWebSearchOptions,
-  sharedResolver?: () => DiffbotClient,
 ): Tool<z.infer<typeof diffbotWebSearchInputSchema>, JsonObject[]> {
-  const resolveClient = sharedResolver ?? createClientResolver(options);
+  return createWebSearchTool(options, createClientResolver(options));
+}
 
+/** Internal: lets `diffbotTools()` share one resolver across the bundle. */
+export function createWebSearchTool(
+  options: DiffbotWebSearchOptions | undefined,
+  resolveClient: () => DiffbotClient,
+): Tool<z.infer<typeof diffbotWebSearchInputSchema>, JsonObject[]> {
   return tool({
     description:
       "Search the web via Diffbot. Returns a list of results, each with " +

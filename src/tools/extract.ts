@@ -30,10 +30,15 @@ const inputSchema = z.object({
 
 export function diffbotExtract(
   options?: DiffbotExtractOptions,
-  sharedResolver?: () => DiffbotClient,
 ): Tool<z.infer<typeof inputSchema>, DiffbotExtractToolOutput> {
-  const resolveClient = sharedResolver ?? createClientResolver(options);
+  return createExtractTool(options, createClientResolver(options));
+}
 
+/** Internal: lets `diffbotTools()` share one resolver across the bundle. */
+export function createExtractTool(
+  options: DiffbotExtractOptions | undefined,
+  resolveClient: () => DiffbotClient,
+): Tool<z.infer<typeof inputSchema>, DiffbotExtractToolOutput> {
   return tool({
     description:
       "Extract structured content (title, text, type, resolved URL) from a " +

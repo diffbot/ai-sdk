@@ -46,6 +46,29 @@ describe("diffbotTools", () => {
     expect(bearers.filter(Boolean)).toEqual(["Bearer shared-token"]);
   });
 
+  it("returns an empty bundle when only is empty", () => {
+    const tools = diffbotTools({
+      client: new DiffbotClient({ token: "t", fetch: createMockFetch(() => jsonResponse({})) }),
+      only: [],
+    });
+    expect(Object.keys(tools)).toEqual([]);
+  });
+
+  it("builds tools without a token and defers the error to execute", async () => {
+    const saved = process.env.DIFFBOT_API_TOKEN;
+    delete process.env.DIFFBOT_API_TOKEN;
+    try {
+      const tools = diffbotTools();
+      expect(Object.keys(tools)).toHaveLength(3);
+      await expect(
+        tools.diffbot_web_search.execute!({ query: "q" }, toolExecOptions()),
+      ).rejects.toThrow("No Diffbot API token.");
+    } finally {
+      if (saved === undefined) delete process.env.DIFFBOT_API_TOKEN;
+      else process.env.DIFFBOT_API_TOKEN = saved;
+    }
+  });
+
   it("each entry is a valid AI SDK tool", () => {
     const tools = diffbotTools({
       client: new DiffbotClient({ token: "t", fetch: createMockFetch(() => jsonResponse({})) }),
