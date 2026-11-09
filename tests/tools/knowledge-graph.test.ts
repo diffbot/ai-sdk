@@ -2,7 +2,8 @@ import {
   diffbotKnowledgeGraph,
   diffbotKnowledgeGraphInputSchema,
 } from "../../src/tools/knowledge-graph.js";
-import { describe, expect, it } from "vitest";
+import type * as DiffbotSdk from "@diffbot/typescript";
+import { describe, expect, it, vi } from "vitest";
 import { createMockFetch, jsonResponse, type MockHandler } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 
@@ -58,6 +59,24 @@ describe("diffbotKnowledgeGraph", () => {
     const body = { hits: 1, data: [{ entity: { id: "E1" } }] };
     const out = await runDql(() => jsonResponse(body), { query: "type:Organization", size: 1 });
     expect(out).toEqual(body);
+  });
+
+  it("throws when the SDK hands back a non-JSON body", async () => {
+    vi.resetModules();
+    vi.doMock("@diffbot/typescript", async (importOriginal) => {
+      const mod = (await importOriginal()) as typeof DiffbotSdk;
+      return { ...mod, dql: async () => new Uint8Array([1, 2, 3]) };
+    });
+    try {
+      const { diffbotKnowledgeGraph: mocked } = await import("../../src/tools/knowledge-graph.js");
+      const tool = mocked({ apiKey: "test-token" });
+      await expect(
+        tool.execute!({ query: "type:Organization" }, toolExecOptions()),
+      ).rejects.toThrow("Unexpected non-JSON DQL response.");
+    } finally {
+      vi.doUnmock("@diffbot/typescript");
+      vi.resetModules();
+    }
   });
 
   it("rejects from < 0", () => {
