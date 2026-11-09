@@ -1,0 +1,27 @@
+# Node / package
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+.npm/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / OS / editors
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test / tooling caches
+.turbo/
+.cache/
+.vitest/
