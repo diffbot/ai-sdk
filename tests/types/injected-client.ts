@@ -8,6 +8,12 @@ import {
   diffbotOntology,
   diffbotTools,
   diffbotWebSearch,
+  loadCrawl,
+  loadExtract,
+  retrieveKnowledgeGraph,
+  retrieveWebSearch,
+  streamCrawl,
+  streamExtract,
 } from "../../src/index.js";
 
 const client = new DiffbotClient({ token: "injected" });
@@ -32,3 +38,10 @@ diffbotOntology({ client, ontologyStore: new OntologyStore(client) });
 diffbotOntology({ client, ontologyStore: new KVOntologyStore(client, kv) });
 diffbotTools({ client, ontologyStore: new KVOntologyStore(client, kv) });
 diffbotTools({ client, only: ["diffbot_ontology", "diffbot_ask"] });
+
+retrieveKnowledgeGraph({ client, query: "type:Organization" });
+retrieveWebSearch({ client, query: "diffbot" });
+loadExtract({ client, urls: ["https://example.com"] });
+streamExtract({ client, urls: ["https://example.com"] });
+loadCrawl({ client, site: "https://example.com", crawlOptions: { watch: false } });
+streamCrawl({ client, site: "https://example.com", crawlOptions: { watch: false } });

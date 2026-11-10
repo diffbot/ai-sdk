@@ -75,4 +75,15 @@ describe("diffbotAsk", () => {
     expect(tool.description?.length).toBeGreaterThan(0);
     expect(typeof tool.execute).toBe("function");
   });
+
+  it("defaults client timeout to 120s when building its own client", async () => {
+    let seen: AbortSignal | undefined;
+    const fetch: typeof globalThis.fetch = async (_input, init) => {
+      seen = init?.signal ?? undefined;
+      return sseResponse(ASK_SSE);
+    };
+    const tool = diffbotAsk({ apiKey: "test-token", fetch });
+    await tool.execute!({ question: "q" }, toolExecOptions());
+    expect(seen?.aborted).toBe(false);
+  });
 });

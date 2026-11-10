@@ -8,6 +8,7 @@ import * as provider from "../src/provider.js";
 const EXPECTED_VALUES = [
   "DEFAULT_KG_CONTENT_FIELDS",
   "DEFAULT_WEB_CONTENT_FIELDS",
+  "defaultCrawlMapper",
   "dictToDocument",
   "diffbotAsk",
   "diffbotDqlProbe",
@@ -17,7 +18,13 @@ const EXPECTED_VALUES = [
   "diffbotOntology",
   "diffbotTools",
   "diffbotWebSearch",
+  "loadCrawl",
+  "loadExtract",
+  "retrieveKnowledgeGraph",
+  "retrieveWebSearch",
   "shapeExtractResponse",
+  "streamCrawl",
+  "streamExtract",
 ].sort();
 
 const EXPECTED_PROVIDER_VALUES = [
@@ -54,7 +61,7 @@ function importGraph(entry: string): string[] {
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
 
 describe("barrel exports", () => {
-  it("runtime value exports match the Phase 2 list", () => {
+  it("runtime value exports match the Phase 3 list", () => {
     expect(Object.keys(mod).sort()).toEqual(EXPECTED_VALUES);
   });
 
