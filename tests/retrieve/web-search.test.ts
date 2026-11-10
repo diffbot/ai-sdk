@@ -65,4 +65,81 @@ describe("retrieveWebSearch", () => {
       { k: 5, query: "q" },
     );
   });
+
+  it("defaults k to 10 and caps the result list at k", async () => {
+    let size: string | null = null;
+    const many = { search_results: Array.from({ length: 12 }, (_, i) => ({ content: `r${i}` })) };
+    const docs = await retrieve(
+      (req) => {
+        size = req.params.get("size");
+        return jsonResponse(many);
+      },
+      { query: "q" },
+    );
+    expect(size).toBe("10");
+    expect(docs).toHaveLength(10);
+
+    const two = await retrieve(() => jsonResponse(many), { k: 2, query: "q" });
+    expect(two.map((d) => d.content)).toEqual(["r0", "r1"]);
+  });
+
+  it("forwards maxTokens and snippetLength only when set", async () => {
+    const seen: URLSearchParams[] = [];
+    const handler: MockHandler = (req) => {
+      seen.push(req.params);
+      return jsonResponse(SAMPLE_BODY);
+    };
+    await retrieve(handler, { query: "q", maxTokens: 500, snippetLength: "short" });
+    await retrieve(handler, { query: "q" });
+
+    expect(seen[0]!.get("maxTokens")).toBe("500");
+    expect(seen[0]!.get("snippetLength")).toBe("SHORT");
+    expect(seen[1]!.has("maxTokens")).toBe(false);
+    expect(seen[1]!.has("snippetLength")).toBe(false);
+  });
+
+  it("narrows metadata to the fields allowlist", async () => {
+    const docs = await retrieve(() => jsonResponse(SAMPLE_BODY), {
+      k: 2,
+      query: "q",
+      fields: ["pageUrl", "score"],
+    });
+    expect(docs[0]!.metadata).toEqual({ pageUrl: "https://www.diffbot.com/kg/", score: 0.91 });
+  });
+
+  it("honours custom contentFields and a full documentMapper override", async () => {
+    const byTitle = await retrieve(() => jsonResponse(SAMPLE_BODY), {
+      k: 2,
+      query: "q",
+      contentFields: ["title"],
+    });
+    expect(byTitle[0]!.content).toBe("Diffbot Knowledge Graph");
+
+    const mapped = await retrieve(() => jsonResponse(SAMPLE_BODY), {
+      k: 2,
+      query: "q",
+      fields: ["score"],
+      documentMapper: (hit) => ({ content: String(hit.pageUrl), metadata: {} }),
+    });
+    expect(mapped.map((d) => d.content)).toEqual([
+      "https://www.diffbot.com/kg/",
+      "https://www.diffbot.com/about",
+    ]);
+    expect(mapped[0]!.metadata).toEqual({});
+  });
+
+  it("returns [] when the body has no search_results array", async () => {
+    expect(await retrieve(() => jsonResponse({}), { query: "q" })).toEqual([]);
+  });
+
+  it("rejects a non-integer k before any request", async () => {
+    await expect(
+      retrieve(
+        () => {
+          throw new Error("should not be called");
+        },
+        { query: "q", k: 1.5 },
+      ),
+    ).rejects.toThrow(/`k` must be a positive integer/);
+  });
 });

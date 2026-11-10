@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DiffbotClient, type JsonObject } from "@diffbot/typescript";
+import { DiffbotClient, ExtractionError, type JsonObject } from "@diffbot/typescript";
 import { loadExtract, streamExtract } from "../../src/retrieve/extract.js";
 import { createMockFetch, jsonResponse, type MockHandler } from "../helpers/mock-fetch.js";
 
@@ -58,6 +58,64 @@ describe("loadExtract", () => {
       { api: "analyze", fmt: "markdown" },
     );
     expect(params!.get("mode")).toBe("llm");
+  });
+
+  it("prefers objects[0].content over text, and fills the default metadata", async () => {
+    const docs = await load(
+      () =>
+        jsonResponse({
+          objects: [
+            {
+              content: "Markdown body.",
+              text: "Plain body.",
+              title: "Title",
+              type: "article",
+              pageUrl: "https://example.com/",
+              resolvedPageUrl: "https://www.example.com/",
+            },
+          ],
+        }),
+      ["https://example.com"],
+    );
+    expect(docs[0]).toEqual({
+      content: "Markdown body.",
+      metadata: {
+        url: "https://example.com",
+        title: "Title",
+        pageUrl: "https://example.com/",
+        resolvedPageUrl: "https://www.example.com/",
+        type: "article",
+      },
+    });
+  });
+
+  it("routes a custom api and non-markdown fmt to the wire with the token", async () => {
+    let seen: { url: string; params: URLSearchParams } | undefined;
+    await load(
+      (req) => {
+        seen = req;
+        return jsonResponse({ objects: [{ text: "x" }] });
+      },
+      ["https://example.com"],
+      { api: "article", fmt: "json" },
+    );
+    expect(seen!.url).toBe("https://api.diffbot.com/v3/article");
+    expect(seen!.params.get("token")).toBe("test-token");
+    expect(seen!.params.has("mode")).toBe(false);
+  });
+
+  it("propagates an extraction failure, like the LangChain loader", async () => {
+    const handler: MockHandler = (req) =>
+      req.params.get("url")?.endsWith("/bad")
+        ? jsonResponse({ errorCode: 404, error: "Not found" })
+        : jsonResponse({ objects: [{ text: "ok" }] });
+    const urls = ["https://example.com/good", "https://example.com/bad"];
+
+    await expect(load(handler, urls)).rejects.toBeInstanceOf(ExtractionError);
+
+    const stream = streamExtract({ apiKey: "t", fetch: createMockFetch(handler), urls });
+    expect((await stream.next()).value).toMatchObject({ content: "ok" });
+    await expect(stream.next()).rejects.toMatchObject({ errorCode: 404 });
   });
 
   it("lets documentMapper override the default mapping", async () => {

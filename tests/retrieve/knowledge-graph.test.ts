@@ -143,6 +143,39 @@ describe("retrieveKnowledgeGraph request wiring", () => {
     );
   });
 
+  it("defaults to size 10 and forwards from, filter, exportspec and extra", async () => {
+    const seen: URLSearchParams[] = [];
+    const handler: MockHandler = (req) => {
+      seen.push(req.params);
+      return jsonResponse(SAMPLE_BODY);
+    };
+    await retrieve(handler, { query: "q" });
+    await retrieve(handler, {
+      query: "q",
+      from: 20,
+      filter: "nbEmployees>50",
+      exportspec: "name",
+      extra: { nonCanonicalFacts: "true" },
+    });
+
+    expect(seen[0]!.get("size")).toBe("10");
+    expect(seen[0]!.has("filter")).toBe(false);
+    expect(seen[1]!.get("from")).toBe("20");
+    expect(seen[1]!.get("filter")).toBe("nbEmployees>50");
+    expect(seen[1]!.get("exportspec")).toBe("name");
+    expect(seen[1]!.get("nonCanonicalFacts")).toBe("true");
+    expect(seen[1]!.get("token")).toBe("test-token");
+  });
+
+  it("caps the documents at k even if the server returns more", async () => {
+    const docs = await retrieve(() => jsonResponse(SAMPLE_BODY), { k: 1, query: "q" });
+    expect(docs.map((d) => d.metadata.id)).toEqual(["E1"]);
+  });
+
+  it("returns [] when the body carries no data array", async () => {
+    expect(await retrieve(() => jsonResponse({ hits: 0 }), { query: "q" })).toEqual([]);
+  });
+
   it("rejects a non-positive k", async () => {
     await expect(
       retrieveKnowledgeGraph({

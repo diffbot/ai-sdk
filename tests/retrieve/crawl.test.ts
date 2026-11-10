@@ -51,6 +51,23 @@ describe("streamCrawl watch defaulting", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0]!.url).toBe(CRAWL_URL);
     expect(requests[0]!.params.get("maxHops")).toBe("3");
+    expect(requests[0]!.params.get("token")).toBe("test-token");
+    expect(requests[0]!.params.get("seeds")).toBe("https://example.com");
+  });
+
+  it("defaults watch without mutating the caller's crawlOptions", async () => {
+    const crawlOptions = { jobName: "test-job", pollInterval: 0 };
+    await loadCrawl({
+      apiKey: "t",
+      fetch: createMockFetch((req) =>
+        req.url.endsWith("/data")
+          ? new Response("", { status: 200 })
+          : jsonResponse({ jobs: [{ name: "test-job", jobStatus: { status: 2 } }] }),
+      ),
+      site: "https://example.com",
+      crawlOptions,
+    });
+    expect(crawlOptions).toEqual({ jobName: "test-job", pollInterval: 0 });
   });
 
   it("polls the job and yields a document per crawled URL when watch defaults true", async () => {
