@@ -29,6 +29,8 @@ describe("diffbotAsk", () => {
       (req) => {
         expect(req.url).toBe(ASK_URL);
         expect(req.method).toBe("POST");
+        expect(req.headers.get("Authorization")).toBe("Bearer test-token");
+        expect(req.params.get("token")).toBeNull();
         const payload = JSON.parse(req.body ?? "{}") as {
           messages: Array<{ role: string; content: string }>;
           stream: boolean;

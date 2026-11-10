@@ -24,6 +24,7 @@ describe("diffbotDqlProbe", () => {
       (req) => {
         expect(req.url).toBe(DQL_URL);
         expect(req.method).toBe("GET");
+        expect(req.params.get("token")).toBe("test-token");
         expect(req.params.get("size")).toBe("0");
         const query = req.params.get("query") ?? "";
         const hits = query.includes("Diffbot") ? 5 : 100;
@@ -112,6 +113,20 @@ describe("diffbotDqlProbe", () => {
       { workers: 2 },
     );
     expect(peak).toBe(3);
+  });
+
+  it("defers the missing-token error to execute", async () => {
+    const saved = process.env.DIFFBOT_API_TOKEN;
+    delete process.env.DIFFBOT_API_TOKEN;
+    try {
+      const tool = diffbotDqlProbe();
+      await expect(
+        tool.execute!({ queries: ["type:Organization"] }, toolExecOptions()),
+      ).rejects.toThrow("No Diffbot API token.");
+    } finally {
+      if (saved === undefined) delete process.env.DIFFBOT_API_TOKEN;
+      else process.env.DIFFBOT_API_TOKEN = saved;
+    }
   });
 
   it("validates its input schema", () => {

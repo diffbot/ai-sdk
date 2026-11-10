@@ -3,6 +3,7 @@ import {
   PROVIDER_NO_TOKEN_MESSAGE,
   createDiffbot,
   DEFAULT_DIFFBOT_BASE_URL,
+  diffbot as defaultDiffbot,
 } from "../src/provider.js";
 import { describe, expect, it } from "vitest";
 import {
@@ -163,6 +164,33 @@ describe("createDiffbot auth and passthrough", () => {
       ),
     );
     expect(seen?.headers.get("Authorization")).toBe("Bearer caller-owned");
+  });
+
+  it("the ready-made `diffbot` instance reads the env token and global fetch per request", async () => {
+    const savedFetch = globalThis.fetch;
+    let seen: MockRequest | undefined;
+    globalThis.fetch = createMockFetch((req) => {
+      seen = req;
+      return completionResponse("ok");
+    }) as typeof fetch;
+    try {
+      await withEnvToken(undefined, async () => {
+        await expect(
+          generateText({ model: defaultDiffbot("diffbot-small-xl"), prompt: "hi" }),
+        ).rejects.toThrow(PROVIDER_NO_TOKEN_MESSAGE);
+      });
+      await withEnvToken("env-token", async () => {
+        const { text } = await generateText({
+          model: defaultDiffbot("diffbot-small-xl"),
+          prompt: "hi",
+        });
+        expect(text).toBe("ok");
+      });
+    } finally {
+      globalThis.fetch = savedFetch;
+    }
+    expect(seen?.url).toBe(CHAT_URL);
+    expect(seen?.headers.get("Authorization")).toBe("Bearer env-token");
   });
 
   it("forwards custom headers and a custom baseURL", async () => {

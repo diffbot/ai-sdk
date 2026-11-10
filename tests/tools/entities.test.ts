@@ -71,6 +71,20 @@ describe("diffbotEntities", () => {
     );
   });
 
+  it("defers the missing-token error to execute", async () => {
+    const saved = process.env.DIFFBOT_API_TOKEN;
+    delete process.env.DIFFBOT_API_TOKEN;
+    try {
+      const tool = diffbotEntities();
+      await expect(tool.execute!({ text: "x" }, toolExecOptions())).rejects.toThrow(
+        "No Diffbot API token.",
+      );
+    } finally {
+      if (saved === undefined) delete process.env.DIFFBOT_API_TOKEN;
+      else process.env.DIFFBOT_API_TOKEN = saved;
+    }
+  });
+
   it("requires `text` and rejects a non-string lang", () => {
     expect(diffbotEntitiesInputSchema.safeParse({}).success).toBe(false);
     expect(diffbotEntitiesInputSchema.safeParse({ text: 1 }).success).toBe(false);

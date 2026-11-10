@@ -7,7 +7,7 @@ import {
 } from "@diffbot/typescript";
 import { diffbotOntology, diffbotOntologyInputSchema } from "../../src/tools/ontology.js";
 import { describe, expect, it } from "vitest";
-import { createMockFetch, jsonResponse } from "../helpers/mock-fetch.js";
+import { createMockFetch, jsonResponse, type MockRequest } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 
 const ONTOLOGY_URL = "https://kg.diffbot.com/kg/ontology";
@@ -205,6 +205,61 @@ describe("diffbotOntology recoverable errors", () => {
       error: "op='fields' requires `name` (the entity type or composite).",
       hint: HINT,
     });
+  });
+
+  it("returns {error, hint} for an unknown op that bypassed the schema", async () => {
+    const harness = makeTool();
+    const out = await run(harness, { op: "bogus" } as unknown as Parameters<typeof run>[1]);
+    expect(out).toEqual({ error: "Unknown op 'bogus'.", hint: HINT });
+  });
+
+  it("returns {error, hint} for unknown taxonomy and enum names", async () => {
+    const harness = makeTool();
+    expect(await run(harness, { op: "taxonomy", name: "Nope" })).toEqual({
+      error: "Unknown taxonomy: Nope",
+      hint: HINT,
+    });
+    expect(await run(harness, { op: "enum", name: "Nope" })).toEqual({
+      error: "Unknown enum: Nope",
+      hint: HINT,
+    });
+  });
+
+  it("returns {error, hint} for an invalid search regex", async () => {
+    const harness = makeTool();
+    const out = await run(harness, { op: "search", name: "(" });
+    expect(out).toMatchObject({ error: expect.stringMatching(/regular expression/i), hint: HINT });
+  });
+});
+
+describe("diffbotOntology transport and auth", () => {
+  it("fetches the public ontology endpoint without sending the token", async () => {
+    let seen: MockRequest | undefined;
+    const tool = diffbotOntology({
+      apiKey: "test-token",
+      fetch: createMockFetch((req) => {
+        seen = req;
+        return jsonResponse(FIXTURE_ONTOLOGY);
+      }),
+    });
+    await tool.execute!({ op: "types" }, toolExecOptions());
+    expect(seen?.url).toBe(ONTOLOGY_URL);
+    expect(seen?.params.get("token")).toBeNull();
+    expect(seen?.headers.get("Authorization")).toBeNull();
+  });
+
+  it("defers the missing-token error to execute when no store is injected", async () => {
+    const saved = process.env.DIFFBOT_API_TOKEN;
+    delete process.env.DIFFBOT_API_TOKEN;
+    try {
+      const tool = diffbotOntology();
+      await expect(tool.execute!({ op: "types" }, toolExecOptions())).rejects.toThrow(
+        "No Diffbot API token.",
+      );
+    } finally {
+      if (saved === undefined) delete process.env.DIFFBOT_API_TOKEN;
+      else process.env.DIFFBOT_API_TOKEN = saved;
+    }
   });
 });
 
