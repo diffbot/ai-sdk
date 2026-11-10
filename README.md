@@ -37,7 +37,7 @@ Every tool factory accepts:
 
 The token is resolved **inside `execute`**, not at import time. Missing credentials throw with a clear message when a tool runs, not when the process starts.
 
-`createDiffbot()` reads `DIFFBOT_API_TOKEN` **lazily on the first model call**, not at import or factory time.
+`createDiffbot()` reads `DIFFBOT_API_TOKEN` **lazily, on each model call**, not at import or factory time.
 
 ```ts
 import { diffbotWebSearch } from "@diffbot/ai-sdk";
@@ -85,6 +85,16 @@ apply to all of them.
 
 ## Tools
 
+| Factory                 | Bundle key                | What it does                                           |
+| ----------------------- | ------------------------- | ------------------------------------------------------ |
+| `diffbotWebSearch`      | `diffbot_web_search`      | Web search with ranked, snippet-bearing results        |
+| `diffbotExtract`        | `diffbot_extract`         | Structured content from one URL                        |
+| `diffbotKnowledgeGraph` | `diffbot_knowledge_graph` | Run a DQL query against the Knowledge Graph            |
+| `diffbotEntities`       | `diffbot_entities`        | Entities and sentiment in a piece of text              |
+| `diffbotOntology`       | `diffbot_ontology`        | Inspect KG types, fields, taxonomies and enums for DQL |
+| `diffbotDqlProbe`       | `diffbot_dql_probe`       | Hit counts for DQL variants, without fetching entities |
+| `diffbotAsk`            | `diffbot_ask`             | A synthesized, sourced answer from Diffbot's RAG LLM   |
+
 ### `diffbotWebSearch`
 
 Search the web via Diffbot. Returns raw results (`title`, `pageUrl`, `score`, `content`, …).
@@ -95,7 +105,7 @@ Search the web via Diffbot. Returns raw results (`title`, `pageUrl`, `score`, `c
 | `numResults`    | int 1–50                                | Optional                                                                        |
 | `snippetLength` | `short` \| `medium` \| `long` \| `full` | Optional                                                                        |
 
-Factory-only: `numResults`, `maxTokens`, `snippetLength`.
+Factory options: `numResults` and `snippetLength` (model input overrides them) and `maxTokens` (factory-only — a cost guardrail the model cannot raise).
 
 ### `diffbotExtract`
 
@@ -122,11 +132,23 @@ Run a DQL query. Returns the raw JSON response.
 
 ### `diffbotEntities`
 
-Identify entities and sentiment in text (`text`, optional `lang`, default `auto`). Returns the NLP response including entity IDs for KG lookup.
+Identify entities and sentiment in text. Returns the NLP response object, including entity IDs you can look up in the KG with `id:or("id1","id2",...)`.
+
+| Field  | Type   | Default                |
+| ------ | ------ | ---------------------- |
+| `text` | string | required               |
+| `lang` | string | factory `lang`, `auto` |
 
 ### `diffbotOntology`
 
-Navigate the KG ontology before writing DQL (`op`, optional `name`, `search`, `refresh`). Returns a string list or `{ error, hint }` for recoverable mistakes.
+Navigate the KG ontology before writing DQL. Returns a string list, or `{ error, hint }` for a recoverable mistake (unknown op, type, taxonomy or enum name; missing `name`; invalid regex) so the model can correct itself and retry.
+
+| Field     | Type    | Notes                                                                                             |
+| --------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `op`      | enum    | `types`, `composites`, `enums`, `taxonomies` (list names); `fields`, `taxonomy`, `enum`, `search` |
+| `name`    | string  | Target for `fields` / `taxonomy` / `enum`; the regex for `search`                                 |
+| `search`  | string  | Optional case-insensitive regex filter for `fields` / `taxonomy`                                  |
+| `refresh` | boolean | Optional; passed to `ontologyStore.load({ refresh })` to re-fetch                                 |
 
 Fetching and caching the ontology is the SDK's `OntologyStore`'s job; by default each tool keeps an in-memory one. In a Worker, where isolates are recycled between requests, inject a durable store such as `KVOntologyStore`. An injected store carries its own client, so the tool resolves no token of its own:
 
@@ -154,11 +176,18 @@ export default {
 
 ### `diffbotDqlProbe`
 
-Probe DQL variants at `size=0` (`queries`, optional `workers`, default 8). Returns `{ query, hits }[]` in input order (`hits: null` when absent).
+Run DQL variants in parallel at `size=0` and return `{ query, hits }[]` in input order (`hits: null` when a response carries no count).
+
+| Field     | Type     | Default                |
+| --------- | -------- | ---------------------- |
+| `queries` | string[] | required               |
+| `workers` | int ≥ 1  | factory `workers`, `8` |
 
 ### `diffbotAsk`
 
-Ask Diffbot's RAG LLM a natural-language `question`. Aggregates the streamed answer into one string. Expect **15–120 s** latency; use a raised client `timeout` (e.g. `120_000` ms) in production.
+Ask Diffbot's RAG LLM a natural-language `question` (string, required). Aggregates the streamed answer into one string.
+
+The RAG endpoint routinely takes 15–30 s and sometimes longer, but `@diffbot/typescript`'s default client timeout is 30 s. Raise it when this package builds the client — `diffbotAsk({ timeout: 120_000 })` or `diffbotTools({ timeout: 120_000 })` — or pass a `client` constructed with `timeout: 120_000`.
 
 ## Diffbot LLM provider
 
@@ -173,7 +202,7 @@ const { text } = await generateText({
 });
 ```
 
-Models: `diffbot-small-xl` (default, 70B RAG) and `diffbot-small` (8B), typed as a union with a `string` fallback so a newer model id still compiles. Also `diffbot.chatModel(id)` and a ready-made `diffbot` export from the same module.
+Models: `diffbot-small-xl` (70B, the one `diffbotAsk` uses) and `diffbot-small` (8B), typed as a union with a `string` fallback so a newer model id still compiles. Also `diffbot.chatModel(id)` and a ready-made `diffbot` instance exported from the same module.
 
 `createDiffbot` options: `apiKey` (defaults to `DIFFBOT_API_TOKEN`), `env` (Workers-style bag), `baseURL` (defaults to `https://llm.diffbot.com/rag/v1`), `headers`, and `fetch`. Nothing reads the environment until a model call is made; an `Authorization` header you set yourself is left alone.
 
@@ -181,7 +210,7 @@ Models: `diffbot-small-xl` (default, 70B RAG) and `diffbot-small` (8B), typed as
 
 Citations appear **inline** in the answer text as markdown links; structured citations via `providerMetadata` are a v0.2.0 item.
 
-The RAG endpoint routinely runs 15–30 seconds and sometimes longer — set client timeouts accordingly when calling `diffbotAsk` or the provider in production.
+The RAG endpoint routinely runs 15–30 seconds and sometimes longer. `createDiffbot` adds no request timeout of its own; if you set one, allow at least 120 s — for example `abortSignal: AbortSignal.timeout(120_000)` on `generateText` / `streamText` — and check your platform's function time limit.
 
 ## Not yet implemented
 
