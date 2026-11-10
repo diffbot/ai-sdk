@@ -103,7 +103,7 @@ Python deps: `langchain-core>=1.0,<2.0`, `httpx`, `diffbot>=3.0.0`. Nothing in t
 - `dependencies`: `zod ^3.25.76 || ^4`. `peerDependencies`: `@diffbot/typescript ^0.2.0`, `@langchain/core ^1.0.0` (both peers to keep exactly one copy in the tree; `@langchain/core` because LangChain does cross-package `instanceof`).
 - Tool schemas import `zod/v3` so they work under both zod 3 and 4.
 - `ci.yml`: push to main / PR / dispatch → lint + typecheck once, then `pnpm test` + `pnpm build` on Node 20/22/24, plus the worker dry-run job.
-- `integration.yml`: `schedule` (nightly 06:00) + `workflow_dispatch` **only**, with a header comment explicitly forbidding `pull_request`/`push` triggers so the `DIFFBOT_API_TOKEN` secret is never exposed to fork code.
+- `integration.yml`: `push` to `main`, `schedule` (1st and 15th of each month at 14:17 UTC, roughly every two weeks) + `workflow_dispatch`, with a header comment explicitly forbidding a `pull_request` trigger so the `DIFFBOT_API_TOKEN` secret is never exposed to fork PR code.
 - `release.yml`: tag `v*` → verify tag matches `package.json` version → build → publish with `--provenance` (`id-token: write`) → create GitHub release. No local publish path.
 - Examples: `examples/company-research` (one-shot CLI agent combining KG search + web search + extract, citing entity IDs and URLs) and `examples/dql-explorer` (Hono + React: agent-authored DQL builder, M&A/IPO dashboard, Ask tab streaming `ChatDiffbot`). Both need `ANTHROPIC_API_KEY` as the agent model.
 
@@ -579,7 +579,7 @@ The same trap applies to the package itself, not just its tests — hence "resol
 ### 7.1 CI (mirror the LangChain repo)
 
 - `ci.yml` — triggers: `push: [main]`, `pull_request`, `workflow_dispatch`. Jobs: (a) lint + typecheck; (b) unit tests + build on Node 20/22/24; (c) the **peer matrix** leg (`ai@6` + `@ai-sdk/openai-compatible@2`, and `ai@7` + `@3`) running typecheck + unit tests against the same source; (d) the empty-token live-skip guard; (e) Workers `wrangler deploy --dry-run`; (f) registry `codeExample` typecheck. **No secrets anywhere in this workflow** — which is what lets every job run while the repo is private and, later, on fork PRs. Jobs (a)–(d) land in Phase 1; (e) and (f) in Phases 4–5.
-- `integration.yml` — triggers: `schedule` (nightly) + `workflow_dispatch` **only**, with the same explicit comment forbidding `pull_request` / `push`, so `secrets.DIFFBOT_API_TOKEN` is never handed to fork-submitted workflow code. One job, `pnpm test:live`.
+- `integration.yml` — triggers: `push` to `main`, `schedule` (1st and 15th of each month at 14:17 UTC) + `workflow_dispatch`, with the same explicit comment forbidding `pull_request`, so `secrets.DIFFBOT_API_TOKEN` is never handed to fork-submitted workflow code. One job, `pnpm test:live`.
 - `release.yml` — tag `v*` (plus `workflow_dispatch` for build-only dry runs); verify the tag matches `package.json`, build, assemble a publish dir, `pnpm publish --access public --provenance` with `id-token: write`, then create the GitHub release. No local publish path.
 - Add an AI-SDK-version canary (weekly `workflow_dispatch`/schedule installing `ai@latest`) so a breaking v8 shows up as a failing scheduled job rather than a user bug report.
 

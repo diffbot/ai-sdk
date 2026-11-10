@@ -14,3 +14,7 @@ Precedence inside `execute` (lazy): injected `client` → `apiKey` → `resolveT
 ## Phase 2 scope (current)
 
 Seven tools: `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk`, plus `diffbotTools()` bundle. Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). No retrieve/load helpers, no examples yet (Phase 3+).
+
+## CI and live tests
+
+`.github/workflows/ci.yml` is unit-only and uses no secrets (lint, typecheck, unit tests, `ai@6` peer leg, empty-token live-skip guard). Phase 4 will add `integration.yml` for `pnpm test:live`, triggered on push to `main`, a twice-monthly drift schedule (1st and 15th at 14:17 UTC), and `workflow_dispatch` — never on `pull_request`, so `DIFFBOT_API_TOKEN` is never exposed to fork PR code.

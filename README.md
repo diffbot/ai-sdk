@@ -240,6 +240,8 @@ Live tests (consume quota, require a token):
 DIFFBOT_API_TOKEN=your-token pnpm test:live
 ```
 
+A future `integration.yml` workflow (Phase 4) will run this suite on pushes to `main`, twice a month for API drift (1st and 15th), and on manual dispatch — not on pull requests.
+
 ## License
 
 MIT

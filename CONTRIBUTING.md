@@ -23,7 +23,7 @@ CI (`.github/workflows/ci.yml`) runs lint + typecheck, unit tests + build on Nod
 DIFFBOT_API_TOKEN=your-token pnpm test:live
 ```
 
-Live tests consume real Diffbot quota. Scheduled integration runs belong in a separate workflow with secrets — not in `ci.yml`.
+Live tests consume real Diffbot quota. When Phase 4 adds `.github/workflows/integration.yml`, it will run them on push to `main`, on a twice-monthly drift schedule (1st and 15th at 14:17 UTC), and on `workflow_dispatch` — never on `pull_request`. That workflow holds the secret; keep it out of `ci.yml`.
 
 ### Live-token rules (mandatory)
 
