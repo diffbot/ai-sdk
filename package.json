@@ -67,11 +67,27 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shixish/diffbot-ai-sdk.git"
+    "url": "git+https://github.com/diffbot/ai-sdk.git"
+  },
+  "homepage": "https://github.com/diffbot/ai-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/diffbot/ai-sdk/issues"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  }
+  },
+  "keywords": [
+    "diffbot",
+    "ai-sdk",
+    "vercel",
+    "ai",
+    "tools",
+    "knowledge-graph",
+    "web-search",
+    "extraction",
+    "dql",
+    "llm"
+  ]
 }

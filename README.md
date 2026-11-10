@@ -1,5 +1,7 @@
 # `@diffbot/ai-sdk`
 
+[![CI](https://github.com/diffbot/ai-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/diffbot/ai-sdk/actions/workflows/ci.yml)
+
 Diffbot tools for the [Vercel AI SDK](https://ai-sdk.dev/): web search, page extraction, and Knowledge Graph (DQL) queries.
 
 **Status:** Phase 1 — three core tools and `diffbotTools()`. See [Not yet implemented](#not-yet-implemented).

@@ -984,7 +984,7 @@ It lives behind the `./provider` subpath with `@ai-sdk/openai-compatible` as an 
 ### 10.7 One package, not many — `@diffbot/ai-sdk` with named exports
 Every comparable vendor ships one package with several named tool exports, the registry's `packageName` field is singular, Diffbot's own LangChain packages are single-package, and the subpath export already solves the only real reason to split (bundle weight).
 
-### 10.8 Repo location — `shixish/diffbot-ai-sdk`, private, transferring later
+### 10.8 Repo location — `shixish/diffbot-ai-sdk`, private, transferring later (done 2026-11-10: now public at `diffbot/ai-sdk`)
 Start as a **private repo under the personal `shixish` account**, default branch `main`; **transfer to the `diffbot` org** when org repo-creation access exists (a GitHub transfer preserves history, issues and stars, so nothing is lost by starting personal). The npm name stays `@diffbot/ai-sdk` regardless of where the repo lives. Publishing to the `@diffbot` scope needs npm org membership and an `NPM_TOKEN` repo secret — a **Phase 6 publish prerequisite, not a blocker for Phases 1–5**, all of which run fine in a private repo with no secrets at all.
 
 ### 10.9 Crawl — helpers only, never a model-facing tool
