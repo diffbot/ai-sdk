@@ -1,0 +1,82 @@
+import { diffbotDqlProbe } from "../../src/tools/dql-probe.js";
+import { describe, expect, it } from "vitest";
+import { createMockFetch, jsonResponse, type MockHandler } from "../helpers/mock-fetch.js";
+import { toolExecOptions } from "../helpers/tool-exec.js";
+
+const DQL_URL = "https://kg.diffbot.com/kg/v3/dql";
+
+async function runProbe(
+  handler: MockHandler,
+  input: { queries: string[]; workers?: number },
+  options?: Parameters<typeof diffbotDqlProbe>[0],
+) {
+  const tool = diffbotDqlProbe({
+    apiKey: "test-token",
+    fetch: createMockFetch(handler),
+    ...options,
+  });
+  return tool.execute!(input, toolExecOptions());
+}
+
+describe("diffbotDqlProbe", () => {
+  it("probes each variant at size=0 and returns hit counts in input order", async () => {
+    const out = await runProbe(
+      (req) => {
+        expect(req.url).toBe(DQL_URL);
+        expect(req.method).toBe("GET");
+        expect(req.params.get("size")).toBe("0");
+        const query = req.params.get("query") ?? "";
+        const hits = query.includes("Diffbot") ? 5 : 100;
+        return jsonResponse({ hits, results: 0 });
+      },
+      {
+        queries: ['type:Organization name:"Diffbot"', "type:Organization"],
+      },
+    );
+
+    expect(out).toEqual([
+      { query: 'type:Organization name:"Diffbot"', hits: 5 },
+      { query: "type:Organization", hits: 100 },
+    ]);
+  });
+
+  it("preserves input order when responses come back out of order", async () => {
+    const queries = ["q0", "q1", "q2", "q3"];
+    const out = await runProbe(
+      async (req) => {
+        const query = req.params.get("query") ?? "";
+        const delay = (queries.length - queries.indexOf(query)) * 5;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return jsonResponse({ hits: queries.indexOf(query) });
+      },
+      { queries, workers: 4 },
+    );
+
+    expect(out).toEqual([
+      { query: "q0", hits: 0 },
+      { query: "q1", hits: 1 },
+      { query: "q2", hits: 2 },
+      { query: "q3", hits: 3 },
+    ]);
+  });
+
+  it("reports null when a response carries no hit count", async () => {
+    const out = await runProbe(() => jsonResponse({ results: 0 }), {
+      queries: ["type:Organization"],
+    });
+    expect(out).toEqual([{ query: "type:Organization", hits: null }]);
+  });
+
+  it("returns an empty list for no queries without hitting the network", async () => {
+    let calls = 0;
+    const out = await runProbe(
+      () => {
+        calls += 1;
+        return jsonResponse({ hits: 1 });
+      },
+      { queries: [] },
+    );
+    expect(out).toEqual([]);
+    expect(calls).toBe(0);
+  });
+});

@@ -16,6 +16,10 @@ describe("diffbotTools", () => {
       "diffbot_web_search",
       "diffbot_extract",
       "diffbot_knowledge_graph",
+      "diffbot_entities",
+      "diffbot_ontology",
+      "diffbot_dql_probe",
+      "diffbot_ask",
     ]);
   });
 
@@ -59,7 +63,7 @@ describe("diffbotTools", () => {
     delete process.env.DIFFBOT_API_TOKEN;
     try {
       const tools = diffbotTools();
-      expect(Object.keys(tools)).toHaveLength(3);
+      expect(Object.keys(tools)).toHaveLength(7);
       await expect(
         tools.diffbot_web_search.execute!({ query: "q" }, toolExecOptions()),
       ).rejects.toThrow("No Diffbot API token.");
