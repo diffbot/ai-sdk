@@ -1,5 +1,11 @@
-import { DiffbotClient, KVOntologyStore, type KVLike } from "@diffbot/typescript";
-import { diffbotOntology } from "../../src/tools/ontology.js";
+import {
+  DiffbotClient,
+  KVOntologyStore,
+  Ontology,
+  type OntologyStore,
+  type KVLike,
+} from "@diffbot/typescript";
+import { diffbotOntology, diffbotOntologyInputSchema } from "../../src/tools/ontology.js";
 import { describe, expect, it } from "vitest";
 import { createMockFetch, jsonResponse } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
@@ -199,5 +205,60 @@ describe("diffbotOntology recoverable errors", () => {
       error: "op='fields' requires `name` (the entity type or composite).",
       hint: HINT,
     });
+  });
+});
+
+describe("diffbotOntology injected store", () => {
+  /* A store that records `load()` calls and never touches the network. */
+  function spyStore(): { store: OntologyStore; calls: ({ refresh?: boolean } | undefined)[] } {
+    const calls: ({ refresh?: boolean } | undefined)[] = [];
+    const ont = Ontology.fromJson(JSON.stringify(FIXTURE_ONTOLOGY));
+    const store = {
+      load: (options?: { refresh?: boolean }) => {
+        calls.push(options);
+        return Promise.resolve(ont);
+      },
+    } as unknown as OntologyStore;
+    return { store, calls };
+  }
+
+  it("passes refresh straight through to ontologyStore.load", async () => {
+    const { store, calls } = spyStore();
+    const tool = diffbotOntology({ apiKey: "test-token", ontologyStore: store });
+
+    await tool.execute!({ op: "types" }, toolExecOptions());
+    await tool.execute!({ op: "types", refresh: true }, toolExecOptions());
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0]?.refresh).toBeUndefined();
+    expect(calls[1]?.refresh).toBe(true);
+  });
+
+  it("needs no token of its own when a store is injected", async () => {
+    const saved = process.env.DIFFBOT_API_TOKEN;
+    delete process.env.DIFFBOT_API_TOKEN;
+    try {
+      const { store } = spyStore();
+      const tool = diffbotOntology({ ontologyStore: store });
+      expect(await tool.execute!({ op: "types" }, toolExecOptions())).toEqual([
+        "Organization",
+        "Person",
+      ]);
+    } finally {
+      if (saved === undefined) delete process.env.DIFFBOT_API_TOKEN;
+      else process.env.DIFFBOT_API_TOKEN = saved;
+    }
+  });
+});
+
+describe("diffbotOntology input schema", () => {
+  it("requires a known op", () => {
+    expect(diffbotOntologyInputSchema.safeParse({}).success).toBe(false);
+    expect(diffbotOntologyInputSchema.safeParse({ op: "nope" }).success).toBe(false);
+    expect(diffbotOntologyInputSchema.safeParse({ op: "types" }).success).toBe(true);
+    expect(diffbotOntologyInputSchema.safeParse({ op: "fields", name: "Org" }).success).toBe(true);
+    expect(diffbotOntologyInputSchema.safeParse({ op: "types", refresh: "yes" }).success).toBe(
+      false,
+    );
   });
 });

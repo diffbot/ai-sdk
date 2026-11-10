@@ -1,3 +1,4 @@
+import type { OntologyStore } from "@diffbot/typescript";
 import type { Tool } from "ai";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 import { createAskTool } from "./ask.js";
@@ -19,6 +20,8 @@ export type DiffbotToolName =
 
 export interface DiffbotToolsOptions extends DiffbotAuth {
   only?: readonly DiffbotToolName[];
+  /** Forwarded to `diffbot_ontology`; pass a `KVOntologyStore` in Workers. */
+  ontologyStore?: OntologyStore;
 }
 
 const TOOL_ORDER: readonly DiffbotToolName[] = [
@@ -32,7 +35,7 @@ const TOOL_ORDER: readonly DiffbotToolName[] = [
 ];
 
 export function diffbotTools(options?: DiffbotToolsOptions): Record<DiffbotToolName, Tool> {
-  const { only, ...auth } = options ?? {};
+  const { only, ontologyStore, ...auth } = options ?? {};
   const resolveClient = createClientResolver(auth);
 
   const names = only ? TOOL_ORDER.filter((name) => only.includes(name)) : TOOL_ORDER;
@@ -53,7 +56,7 @@ export function diffbotTools(options?: DiffbotToolsOptions): Record<DiffbotToolN
         out[name] = createEntitiesTool(auth, resolveClient);
         break;
       case "diffbot_ontology":
-        out[name] = createOntologyTool(auth, resolveClient);
+        out[name] = createOntologyTool({ ...auth, ontologyStore }, resolveClient);
         break;
       case "diffbot_dql_probe":
         out[name] = createDqlProbeTool(auth, resolveClient);

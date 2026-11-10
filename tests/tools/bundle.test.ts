@@ -1,11 +1,11 @@
-import { DiffbotClient } from "@diffbot/typescript";
+import { DiffbotClient, KVOntologyStore, type KVLike } from "@diffbot/typescript";
 import { describe, expect, it, vi } from "vitest";
 import { diffbotTools } from "../../src/tools/index.js";
 import { createMockFetch, jsonResponse, type MockRequest } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 
 describe("diffbotTools", () => {
-  it("exposes the three diffbot_* keys in declaration order", () => {
+  it("exposes the seven diffbot_* keys in declaration order", () => {
     const tools = diffbotTools({
       client: new DiffbotClient({
         token: "t",
@@ -82,5 +82,39 @@ describe("diffbotTools", () => {
       expect(tool.inputSchema).toBeDefined();
       expect(typeof tool.execute).toBe("function");
     }
+  });
+
+  it("forwards ontologyStore to the ontology tool only", async () => {
+    const data = new Map<string, string>();
+    const kv: KVLike = {
+      get: async (key) => data.get(key) ?? null,
+      put: async (key, value) => {
+        data.set(key, value);
+      },
+      delete: async (key) => {
+        data.delete(key);
+      },
+    };
+    let fetches = 0;
+    const client = new DiffbotClient({
+      token: "t",
+      fetch: createMockFetch(() => {
+        fetches += 1;
+        return jsonResponse({ types: { Organization: { fields: {} } } });
+      }),
+    });
+
+    const first = diffbotTools({ client, ontologyStore: new KVOntologyStore(client, kv) });
+    expect(await first.diffbot_ontology.execute!({ op: "types" }, toolExecOptions())).toEqual([
+      "Organization",
+    ]);
+    expect(fetches).toBe(1);
+
+    /* A second bundle, a fresh in-memory cache: the shared KV store answers. */
+    const second = diffbotTools({ client, ontologyStore: new KVOntologyStore(client, kv) });
+    expect(await second.diffbot_ontology.execute!({ op: "types" }, toolExecOptions())).toEqual([
+      "Organization",
+    ]);
+    expect(fetches).toBe(1);
   });
 });

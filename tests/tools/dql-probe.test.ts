@@ -1,4 +1,4 @@
-import { diffbotDqlProbe } from "../../src/tools/dql-probe.js";
+import { diffbotDqlProbe, diffbotDqlProbeInputSchema } from "../../src/tools/dql-probe.js";
 import { describe, expect, it } from "vitest";
 import { createMockFetch, jsonResponse, type MockHandler } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
@@ -78,5 +78,52 @@ describe("diffbotDqlProbe", () => {
     );
     expect(out).toEqual([]);
     expect(calls).toBe(0);
+  });
+
+  it("caps concurrency at the factory `workers` when the model omits it", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    await runProbe(
+      async () => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        inFlight -= 1;
+        return jsonResponse({ hits: 1 });
+      },
+      { queries: ["q0", "q1", "q2", "q3", "q4", "q5"] },
+      { workers: 2 },
+    );
+    expect(peak).toBe(2);
+  });
+
+  it("lets model input override the factory `workers`", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    await runProbe(
+      async () => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        inFlight -= 1;
+        return jsonResponse({ hits: 1 });
+      },
+      { queries: ["q0", "q1", "q2", "q3", "q4", "q5"], workers: 3 },
+      { workers: 2 },
+    );
+    expect(peak).toBe(3);
+  });
+
+  it("validates its input schema", () => {
+    expect(diffbotDqlProbeInputSchema.safeParse({}).success).toBe(false);
+    expect(diffbotDqlProbeInputSchema.safeParse({ queries: "q" }).success).toBe(false);
+    expect(diffbotDqlProbeInputSchema.safeParse({ queries: [1] }).success).toBe(false);
+    expect(diffbotDqlProbeInputSchema.safeParse({ queries: ["q"], workers: 0 }).success).toBe(
+      false,
+    );
+    expect(diffbotDqlProbeInputSchema.safeParse({ queries: ["q"], workers: 1.5 }).success).toBe(
+      false,
+    );
+    expect(diffbotDqlProbeInputSchema.safeParse({ queries: ["q"] }).success).toBe(true);
   });
 });

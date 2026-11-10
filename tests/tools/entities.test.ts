@@ -1,4 +1,4 @@
-import { diffbotEntities } from "../../src/tools/entities.js";
+import { diffbotEntities, diffbotEntitiesInputSchema } from "../../src/tools/entities.js";
 import { describe, expect, it } from "vitest";
 import { createMockFetch, jsonResponse, type MockHandler } from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
@@ -69,5 +69,18 @@ describe("diffbotEntities", () => {
       { text: "Hallo." },
       { lang: "de" },
     );
+  });
+
+  it("requires `text` and rejects a non-string lang", () => {
+    expect(diffbotEntitiesInputSchema.safeParse({}).success).toBe(false);
+    expect(diffbotEntitiesInputSchema.safeParse({ text: 1 }).success).toBe(false);
+    expect(diffbotEntitiesInputSchema.safeParse({ text: "x", lang: 7 }).success).toBe(false);
+    expect(diffbotEntitiesInputSchema.safeParse({ text: "x" }).success).toBe(true);
+  });
+
+  it("exposes description and execute", () => {
+    const tool = diffbotEntities({ apiKey: "t", fetch: createMockFetch(() => jsonResponse({})) });
+    expect(tool.description?.length).toBeGreaterThan(0);
+    expect(typeof tool.execute).toBe("function");
   });
 });

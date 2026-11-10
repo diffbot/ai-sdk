@@ -5,10 +5,7 @@ import { type DiffbotAuth, createClientResolver } from "../client.js";
 
 export const diffbotEntitiesInputSchema = z.object({
   text: z.string().describe("Text to extract entities and sentiment from."),
-  lang: z
-    .string()
-    .optional()
-    .describe("Language hint (`auto` to detect). Server default if unset."),
+  lang: z.string().optional().describe("Language hint (`auto` to detect). Defaults to `auto`."),
 });
 
 export interface DiffbotEntitiesOptions extends DiffbotAuth {

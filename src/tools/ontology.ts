@@ -133,11 +133,13 @@ export function createOntologyTool(
       "writing a DQL query.",
     inputSchema: diffbotOntologyInputSchema,
     execute: async (input) => {
-      const client = resolveClient();
-      const store = options?.ontologyStore ?? (defaultStore ??= new OntologyStore(client));
-      const ont = await store.load({
-        ...(input.refresh !== undefined ? { refresh: input.refresh } : {}),
-      });
+      /*
+        An injected store owns its own client, so auth is only resolved when we
+        have to build the default store — `diffbotOntology({ ontologyStore })`
+        works in a process with no DIFFBOT_API_TOKEN.
+      */
+      const store = options?.ontologyStore ?? (defaultStore ??= new OntologyStore(resolveClient()));
+      const ont = await store.load({ refresh: input.refresh });
       return ontologyLookup(ont, input.op, input.name, input.search);
     },
   });

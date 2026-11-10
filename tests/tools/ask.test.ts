@@ -1,4 +1,4 @@
-import { diffbotAsk } from "../../src/tools/ask.js";
+import { diffbotAsk, diffbotAskInputSchema } from "../../src/tools/ask.js";
 import { describe, expect, it } from "vitest";
 import {
   createMockFetch,
@@ -63,7 +63,14 @@ describe("diffbotAsk", () => {
   });
 
   it("rejects invalid input via schema", () => {
+    expect(diffbotAskInputSchema.safeParse({}).success).toBe(false);
+    expect(diffbotAskInputSchema.safeParse({ question: 42 }).success).toBe(false);
+    expect(diffbotAskInputSchema.safeParse({ question: "who?" }).success).toBe(true);
+  });
+
+  it("exposes description and execute", () => {
     const tool = diffbotAsk({ apiKey: "t", fetch: createMockFetch(() => jsonResponse({})) });
-    expect(tool.inputSchema).toBeDefined();
+    expect(tool.description?.length).toBeGreaterThan(0);
+    expect(typeof tool.execute).toBe("function");
   });
 });

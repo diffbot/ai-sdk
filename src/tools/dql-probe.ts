@@ -7,12 +7,7 @@ export const diffbotDqlProbeInputSchema = z.object({
   queries: z
     .array(z.string())
     .describe("DQL query variants to probe. Each is run with size=0 (hit count only)."),
-  workers: z
-    .number()
-    .int()
-    .min(1)
-    .optional()
-    .describe("Max concurrent requests. Server default if unset."),
+  workers: z.number().int().min(1).optional().describe("Max concurrent requests. Defaults to 8."),
 });
 
 export interface DqlProbeResult {
