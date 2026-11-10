@@ -1,10 +1,15 @@
+import type { DiffbotClient } from "@diffbot/typescript";
 import { diffbotWebSearch } from "../../src/tools/web-search.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 import { hasToken, makeClient } from "./helpers.js";
 
 describe.skipIf(!hasToken)("diffbotWebSearch (live)", () => {
+  let client: DiffbotClient;
+  beforeAll(() => {
+    client = makeClient();
+  });
+
   it("returns an array of results with pageUrl", async () => {
-    const client = makeClient();
     const tool = diffbotWebSearch({ client, numResults: 3 });
     const out = await tool.execute!({ query: "Diffbot knowledge graph" }, toolExecOptions());
     expect(Array.isArray(out)).toBe(true);

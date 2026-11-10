@@ -79,6 +79,10 @@ const tools = diffbotTools(); // all seven diffbot_* tools
 const subset = diffbotTools({ only: ["diffbot_web_search", "diffbot_extract"] });
 ```
 
+Every tool in one bundle shares one client. `ontologyStore` is forwarded to
+`diffbot_ontology`; the other auth options (`client`, `apiKey`, `timeout`, `fetch`, `env`)
+apply to all of them.
+
 ## Tools
 
 ### `diffbotWebSearch`
@@ -122,7 +126,31 @@ Identify entities and sentiment in text (`text`, optional `lang`, default `auto`
 
 ### `diffbotOntology`
 
-Navigate the KG ontology before writing DQL (`op`, optional `name`, `search`, `refresh`). Returns a string list or `{ error, hint }` for recoverable mistakes. Pass `ontologyStore: new KVOntologyStore(client, kv)` in Workers.
+Navigate the KG ontology before writing DQL (`op`, optional `name`, `search`, `refresh`). Returns a string list or `{ error, hint }` for recoverable mistakes.
+
+Fetching and caching the ontology is the SDK's `OntologyStore`'s job; by default each tool keeps an in-memory one. In a Worker, where isolates are recycled between requests, inject a durable store such as `KVOntologyStore`. An injected store carries its own client, so the tool resolves no token of its own:
+
+```ts
+import { DiffbotClient, KVOntologyStore, type KVLike } from "@diffbot/typescript";
+import { diffbotOntology } from "@diffbot/ai-sdk";
+
+interface Env {
+  DIFFBOT_API_TOKEN: string;
+  ONTOLOGY: KVLike; // a KV namespace binding
+}
+
+export default {
+  async fetch(_request: Request, env: Env): Promise<Response> {
+    const client = new DiffbotClient({ token: env.DIFFBOT_API_TOKEN });
+    const ontology = diffbotOntology({
+      client,
+      ontologyStore: new KVOntologyStore(client, env.ONTOLOGY),
+    });
+    // …pass `ontology` in the `tools` of generateText / streamText.
+    return Response.json({ tool: ontology.description });
+  },
+};
+```
 
 ### `diffbotDqlProbe`
 
@@ -145,7 +173,9 @@ const { text } = await generateText({
 });
 ```
 
-Models: `diffbot-small-xl` (default, 70B RAG) and `diffbot-small` (8B). Also `diffbot.chatModel(id)` and a default `diffbot` export from the same module.
+Models: `diffbot-small-xl` (default, 70B RAG) and `diffbot-small` (8B), typed as a union with a `string` fallback so a newer model id still compiles. Also `diffbot.chatModel(id)` and a ready-made `diffbot` export from the same module.
+
+`createDiffbot` options: `apiKey` (defaults to `DIFFBOT_API_TOKEN`), `env` (Workers-style bag), `baseURL` (defaults to `https://llm.diffbot.com/rag/v1`), `headers`, and `fetch`. Nothing reads the environment until a model call is made; an `Authorization` header you set yourself is left alone.
 
 `diffbot-small-xl` is an answer-generation model with built-in retrieval (Knowledge Graph + web search). It **rejects user-defined tools** (HTTP 400), so use your own agent model for tool calling and reach Diffbot through the tools in this package, or through `diffbotAsk`.
 
@@ -159,6 +189,8 @@ Planned for later phases:
 
 - Retrieval helpers (`retrieveKnowledgeGraph`, `retrieveWebSearch`, …)
 - Loaders (`loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`)
+- `toModelOutput` result shaping, `askJson` / structured-output passthrough
+- Structured citations through `providerMetadata` (v0.2.0)
 - Examples, Workers fixture, tools-registry listing
 
 See [`PLAN.md`](./PLAN.md) for the full roadmap.

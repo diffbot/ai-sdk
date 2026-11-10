@@ -1,10 +1,15 @@
+import type { DiffbotClient } from "@diffbot/typescript";
 import { diffbotAsk } from "../../src/tools/ask.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 import { hasToken, makeClient } from "./helpers.js";
 
 describe.skipIf(!hasToken)("diffbotAsk (live)", () => {
+  let client: DiffbotClient;
+  beforeAll(() => {
+    client = makeClient();
+  });
+
   it("returns a non-empty synthesized answer", async () => {
-    const client = makeClient();
     const tool = diffbotAsk({ client });
     const out = (await tool.execute!(
       { question: "What is Diffbot?" },

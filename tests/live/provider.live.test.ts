@@ -1,10 +1,16 @@
 import { generateText, streamText } from "ai";
-import { createDiffbot } from "../../src/provider.js";
-import { hasToken, token } from "./helpers.js";
+import { createDiffbot, type DiffbotProvider } from "../../src/provider.js";
+import { hasToken } from "./helpers.js";
 
+/* `createDiffbot()` with no `apiKey` exercises the documented zero-config path:
+   DIFFBOT_API_TOKEN is read lazily, on the request. */
 describe.skipIf(!hasToken)("createDiffbot (live)", () => {
+  let diffbot: DiffbotProvider;
+  beforeAll(() => {
+    diffbot = createDiffbot();
+  });
+
   it("generateText resolves with non-empty text", async () => {
-    const diffbot = createDiffbot({ apiKey: token });
     const { text } = await generateText({
       model: diffbot("diffbot-small-xl"),
       prompt: "What is Diffbot?",
@@ -14,8 +20,7 @@ describe.skipIf(!hasToken)("createDiffbot (live)", () => {
   }, 120_000);
 
   it("streamText yields at least one text delta", async () => {
-    const diffbot = createDiffbot({ apiKey: token });
-    const stream = await streamText({
+    const stream = streamText({
       model: diffbot("diffbot-small-xl"),
       prompt: "What is Diffbot?",
     });
