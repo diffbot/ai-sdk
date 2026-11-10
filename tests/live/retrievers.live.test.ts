@@ -1,41 +1,52 @@
-import { describe, expect, it } from "vitest";
+import type { DiffbotClient } from "@diffbot/typescript";
 import { retrieveKnowledgeGraph, retrieveWebSearch } from "../../src/index.js";
 import { hasToken, makeClient } from "./helpers.js";
 
 describe.skipIf(!hasToken)("retrieveKnowledgeGraph (live)", () => {
-  it("returns documents narrowed to the requested fields", async () => {
+  let client: DiffbotClient;
+  beforeAll(() => {
+    client = makeClient();
+  });
+
+  it("returns documents narrowed to the requested fields, with the hit score", async () => {
     const docs = await retrieveKnowledgeGraph({
-      client: makeClient(),
-      query: "type:Organization",
+      client,
+      query: 'type:Organization name:"Diffbot"',
       k: 3,
       fields: ["id", "type", "name"],
     });
 
-    expect(Array.isArray(docs)).toBe(true);
     expect(docs.length).toBeGreaterThan(0);
     expect(docs.length).toBeLessThanOrEqual(3);
     for (const doc of docs) {
       expect(typeof doc.content).toBe("string");
+      expect(doc.metadata).toHaveProperty("score");
       for (const key of Object.keys(doc.metadata)) {
         expect(["id", "type", "name", "score"]).toContain(key);
       }
     }
-  });
+  }, 120_000);
 });
 
 describe.skipIf(!hasToken)("retrieveWebSearch (live)", () => {
-  it("returns documents with pageUrl metadata", async () => {
+  let client: DiffbotClient;
+  beforeAll(() => {
+    client = makeClient();
+  });
+
+  it("returns at most k documents with content and pageUrl metadata", async () => {
     const docs = await retrieveWebSearch({
-      client: makeClient(),
+      client,
       query: "What is the Diffbot Knowledge Graph?",
       k: 3,
     });
 
-    expect(Array.isArray(docs)).toBe(true);
     expect(docs.length).toBeGreaterThan(0);
+    expect(docs.length).toBeLessThanOrEqual(3);
     for (const doc of docs) {
       expect(typeof doc.content).toBe("string");
       expect(typeof doc.metadata.pageUrl).toBe("string");
+      expect(doc.metadata).not.toHaveProperty("content");
     }
-  });
+  }, 120_000);
 });
