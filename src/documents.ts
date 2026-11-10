@@ -44,6 +44,14 @@ export function dictToDocument(
   return { content, metadata };
 }
 
+/** Internal: validates a retrieve helper's `k`. Not exported from the barrel. */
+export function resolveK(k: number): number {
+  if (!Number.isInteger(k) || k <= 0) {
+    throw new Error(`\`k\` must be a positive integer, got ${JSON.stringify(k)}.`);
+  }
+  return k;
+}
+
 export interface ShapedExtractResponse {
   content: string;
   title?: string;

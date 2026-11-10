@@ -1,23 +1,18 @@
-import { webSearch, type JsonObject } from "@diffbot/typescript";
+import { webSearch, type JsonObject, type SnippetLength } from "@diffbot/typescript";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 import {
   DEFAULT_WEB_CONTENT_FIELDS,
   dictToDocument,
+  resolveK,
   type DiffbotDocument,
   type DocumentMapper,
 } from "../documents.js";
-
-function resolveK(k: number): number {
-  if (!Number.isInteger(k) || k <= 0) {
-    throw new Error(`\`k\` must be a positive integer, got ${JSON.stringify(k)}.`);
-  }
-  return k;
-}
 
 export interface RetrieveWebSearchOptions extends DiffbotAuth {
   query: string;
   k?: number;
   maxTokens?: number;
+  snippetLength?: SnippetLength;
   fields?: readonly string[];
   contentFields?: readonly string[];
   documentMapper?: DocumentMapper;
@@ -30,6 +25,7 @@ export async function retrieveWebSearch(
     query,
     k: kRaw = 10,
     maxTokens,
+    snippetLength,
     fields,
     contentFields = DEFAULT_WEB_CONTENT_FIELDS,
     documentMapper,
@@ -42,6 +38,7 @@ export async function retrieveWebSearch(
   const body = await webSearch(client, query, {
     numResults: k,
     ...(maxTokens !== undefined ? { maxTokens } : {}),
+    ...(snippetLength !== undefined ? { snippetLength } : {}),
   });
 
   const results = Array.isArray(body.search_results) ? (body.search_results as JsonObject[]) : [];

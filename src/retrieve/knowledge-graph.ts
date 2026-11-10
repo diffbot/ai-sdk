@@ -3,16 +3,10 @@ import { type DiffbotAuth, createClientResolver } from "../client.js";
 import {
   DEFAULT_KG_CONTENT_FIELDS,
   dictToDocument,
+  resolveK,
   type DiffbotDocument,
   type DocumentMapper,
 } from "../documents.js";
-
-function resolveK(k: number): number {
-  if (!Number.isInteger(k) || k <= 0) {
-    throw new Error(`\`k\` must be a positive integer, got ${JSON.stringify(k)}.`);
-  }
-  return k;
-}
 
 function isPlainObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
