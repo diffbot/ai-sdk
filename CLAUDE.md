@@ -11,6 +11,6 @@ Precedence inside `execute` (lazy): injected `client` → `apiKey` → `resolveT
 - `ai`: `^6.0.0 || ^7.0.0` — use `stepCountIs`, not `isStepCount`.
 - `@ai-sdk/openai-compatible`: optional; pair `@2` with `ai@6`, `@3` with `ai@7`.
 
-## Phase 1 scope
+## Phase 2 scope (current)
 
-Core tools only: `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotTools`. No provider subpath, no retrieve/load helpers, no examples yet.
+Seven tools: `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk`, plus `diffbotTools()` bundle. Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). No retrieve/load helpers, no examples yet (Phase 3+).

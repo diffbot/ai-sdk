@@ -914,6 +914,8 @@ Phase 1 is done when **all** of these hold:
 
 ### 8.2 Phase 2 — task V1 first (the one provider unknown)
 
+**V1 result (2026-11-10, live, `https://llm.diffbot.com/rag/v1/chat/completions`):** With `stream: false`, the endpoint returns a normal OpenAI `chat.completion` (HTTP 200) with non-empty `choices[0].message.content`, `finish_reason: "stop"`, and `usage` `{prompt_tokens, completion_tokens, total_tokens}` — so `createDiffbot` is a plain `createOpenAICompatible` wrapper with no `wrapGenerate` middleware. Adding a `tools` array is **rejected** (HTTP 400: `diffbot-small-xl does not currently support user-defined tools`). Citations arrive **inline** in the answer text as markdown links (including `https://app.diffbot.com/entity/...` KG links); `message` has no structured citation fields (`reasoning_content` / `tool_calls` null).
+
 Phase 2 opens with a single verification, before any provider code is written. It needs a `DIFFBOT_API_TOKEN` in the environment and takes about half an hour.
 
 **V1.** POST to `https://llm.diffbot.com/rag/v1/chat/completions` with `Authorization: Bearer $DIFFBOT_API_TOKEN` and a body of `{"model":"diffbot-small-xl","messages":[{"role":"user","content":"Who founded Diffbot?"}],"stream":false}`. Record three things: (a) whether a normal non-streaming OpenAI completion object comes back with non-empty `choices[0].message.content`; (b) what happens when a `tools` array is added to the same request — accepted, ignored, or rejected; (c) where citations appear — inline in the content, or as structured fields.
