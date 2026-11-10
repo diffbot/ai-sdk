@@ -217,7 +217,7 @@ The RAG endpoint routinely runs 15–30 seconds and sometimes longer. `createDif
 
 ## Output shaping
 
-Knowledge Graph and web search returns can be huge. Helpers and (in a later phase) tool `toModelOutput` hooks accept the same knobs as `@diffbot/langchain`:
+Knowledge Graph and web search returns can be huge. `retrieveKnowledgeGraph` and `retrieveWebSearch` accept the same shaping knobs as the `@diffbot/langchain` retrievers (the tools return raw responses; `toModelOutput` shaping for them is a later phase):
 
 - `fields` — metadata allowlist
 - `contentFields` — ordered priority for `content` (defaults: `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`)
@@ -236,7 +236,14 @@ Plain async functions for manual RAG and batch ingestion — no LangChain `Retri
 | `loadExtract` / `streamExtract` | `extract`   | Serial per URL; `shapeExtractResponse` mapping                   |
 | `loadCrawl` / `streamCrawl`     | `crawl`     | Default `watch: true`; `defaultCrawlMapper` skips non-URL events |
 
-Crawl is **helpers only** — never a model-facing tool (slow, quota-heavy). Job control: call `@diffbot/typescript` directly.
+Each returns (or yields) `DiffbotDocument` objects: `{ content: string; metadata: Record<string, unknown> }`. Options beyond the auth ones:
+
+- `retrieveKnowledgeGraph` — `query` (DQL, required), `k` (default `10`), `from`, `filter`, `exportspec`, `extra`, `format` (default `json`; other formats throw, since only JSON can be shaped), plus `fields` / `contentFields` (default `DEFAULT_KG_CONTENT_FIELDS`) / `documentMapper`.
+- `retrieveWebSearch` — `query` (required), `k` (default `10`), `maxTokens`, `snippetLength`, plus `fields` / `contentFields` (default `DEFAULT_WEB_CONTENT_FIELDS`) / `documentMapper`.
+- `loadExtract` / `streamExtract` — `urls` (required), `api` (default `analyze`), `fmt` (default `markdown`), `documentMapper(url, raw)`. `metadata` carries `url`, `title`, `pageUrl`, `resolvedPageUrl` and `type`. URLs are fetched one at a time, in order, and an extraction failure throws (as in `@diffbot/langchain`): `loadExtract` rejects, while `streamExtract` has already yielded the documents before the failing URL.
+- `loadCrawl` / `streamCrawl` — `site` (required), `crawlOptions` (the SDK's `CrawlOptions`; `watch` defaults to `true` so URL events are emitted), `eventMapper(event)` returning a document or `null` to skip. The default `content` is the crawled URL itself, with `url`, `status` and `crawl_timestamp` in `metadata`.
+
+Crawl is **helpers only** — never a model-facing tool (slow, quota-heavy). Job control (`crawlListJobs`, `crawlGetJob`, `crawlDeleteJob`): call `@diffbot/typescript` directly.
 
 ```ts
 import { retrieveKnowledgeGraph, loadExtract, streamCrawl } from "@diffbot/ai-sdk";
@@ -257,13 +264,15 @@ Auth matches tools: `client` → `apiKey` → `DIFFBOT_API_TOKEN`, resolved when
 
 ## Tools and helpers
 
-| Export                                                                           | Kind                  |
-| -------------------------------------------------------------------------------- | --------------------- |
-| Tool factories (`diffbotWebSearch`, …)                                           | Model-facing `tool()` |
-| `diffbotTools`                                                                   | Bundle                |
-| `retrieveKnowledgeGraph`, `retrieveWebSearch`                                    | Retrieval             |
-| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` | Loaders               |
-| `dictToDocument`, `shapeExtractResponse`, `DEFAULT_*_CONTENT_FIELDS`             | Shaping               |
+Every runtime export of `@diffbot/ai-sdk`:
+
+| Export                                                                                                                               | Kind                  |
+| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk` | Model-facing `tool()` |
+| `diffbotTools`                                                                                                                       | Bundle                |
+| `retrieveKnowledgeGraph`, `retrieveWebSearch`                                                                                        | Retrieval             |
+| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`                                                     | Loaders               |
+| `dictToDocument`, `shapeExtractResponse`, `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`                                  | Shaping               |
 
 ## Not yet implemented
 

@@ -32,6 +32,16 @@ describe("README parity", () => {
     expect(tableRows.map((row) => row.key)).toEqual(bundleKeys);
   });
 
+  it("the exports table names every runtime export of the barrel, and nothing else", () => {
+    const section = README.split("## Tools and helpers")[1]?.split("\n## ")[0] ?? "";
+    const rows = section.split("\n").filter((line) => /^\| `/.test(line));
+    const named = rows.flatMap((row) =>
+      [...row.split("|")[1]!.matchAll(/`(\w+)`/g)].map(([, name]) => name!),
+    );
+
+    expect(named.sort()).toEqual(Object.keys(mod).sort());
+  });
+
   it("each tool factory has its own section", () => {
     for (const { factory } of tableRows) {
       expect(README).toContain(`### \`${factory}\``);
