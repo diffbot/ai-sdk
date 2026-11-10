@@ -61,9 +61,12 @@ export function diffbotTools(options?: DiffbotToolsOptions): Record<DiffbotToolN
       case "diffbot_dql_probe":
         out[name] = createDqlProbeTool(auth, resolveClient);
         break;
-      case "diffbot_ask":
-        out[name] = createAskTool(auth, resolveClient);
+      case "diffbot_ask": {
+        const askAuth =
+          auth.client === undefined ? { ...auth, timeout: auth.timeout ?? 120_000 } : auth;
+        out[name] = createAskTool(auth, createClientResolver(askAuth));
         break;
+      }
     }
   }
   return out;
