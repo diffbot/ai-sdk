@@ -11,9 +11,9 @@ Precedence inside `execute` (lazy): injected `client` → `apiKey` → `resolveT
 - `ai`: `^6.0.0 || ^7.0.0` — use `stepCountIs`, not `isStepCount`.
 - `@ai-sdk/openai-compatible`: optional; pair `@2` with `ai@6`, `@3` with `ai@7`.
 
-## Phase 2 scope (current)
+## Phase 3 scope (current)
 
-Seven tools: `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk`, plus `diffbotTools()` bundle. Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). No retrieve/load helpers, no examples yet (Phase 3+).
+Seven tools plus retrieval/loader helpers: `retrieveKnowledgeGraph`, `retrieveWebSearch`, `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` (crawl is helpers-only, never a tool). Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). `diffbotAsk` defaults to `timeout: 120_000` when this package builds the client; injected clients keep their own timeout. No examples yet (Phase 5).
 
 ## CI and live tests
 

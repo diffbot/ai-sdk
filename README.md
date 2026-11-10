@@ -4,7 +4,7 @@
 
 Diffbot tools and an OpenAI-compatible LLM provider for the [Vercel AI SDK](https://ai-sdk.dev/): web search, extraction, Knowledge Graph (DQL), NLP entities, ontology navigation, DQL probing, and Diffbot's RAG `ask` endpoint.
 
-**Status:** Phase 2 — seven tools, `diffbotTools()`, and `createDiffbot` from `@diffbot/ai-sdk/provider`. See [Not yet implemented](#not-yet-implemented).
+**Status:** Phase 3 — seven tools, retrieval/loader helpers, `diffbotTools()`, and `createDiffbot` from `@diffbot/ai-sdk/provider`. See [Not yet implemented](#not-yet-implemented).
 
 ## Install
 
@@ -187,7 +187,7 @@ Run DQL variants in parallel at `size=0` and return `{ query, hits }[]` in input
 
 Ask Diffbot's RAG LLM a natural-language `question` (string, required). Aggregates the streamed answer into one string.
 
-The RAG endpoint routinely takes 15–30 s and sometimes longer, but `@diffbot/typescript`'s default client timeout is 30 s. Raise it when this package builds the client — `diffbotAsk({ timeout: 120_000 })` or `diffbotTools({ timeout: 120_000 })` — or pass a `client` constructed with `timeout: 120_000`.
+The RAG endpoint routinely takes 15–30 s and sometimes longer. When this package builds the client for `diffbotAsk`, the default timeout is **120 s** (override with `timeout:` on the factory, or pass a `client` with your own `timeout`). Other tools keep the SDK's 30 s default unless you set `timeout` on the factory or inject a client.
 
 ## Diffbot LLM provider
 
@@ -210,14 +210,62 @@ Models: `diffbot-small-xl` (70B, the one `diffbotAsk` uses) and `diffbot-small` 
 
 Citations appear **inline** in the answer text as markdown links; structured citations via `providerMetadata` are a v0.2.0 item.
 
-The RAG endpoint routinely runs 15–30 seconds and sometimes longer. `createDiffbot` adds no request timeout of its own; if you set one, allow at least 120 s — for example `abortSignal: AbortSignal.timeout(120_000)` on `generateText` / `streamText` — and check your platform's function time limit.
+The RAG endpoint routinely runs 15–30 seconds and sometimes longer. `createDiffbot` uses the AI SDK's HTTP stack, not `@diffbot/typescript`'s `DiffbotClient`, so it adds no request timeout of its own — allow at least 120 s on `generateText` / `streamText` (for example `abortSignal: AbortSignal.timeout(120_000)`) and check your platform's function time limit.
+
+## Output shaping
+
+Knowledge Graph and web search returns can be huge. Helpers and (in a later phase) tool `toModelOutput` hooks accept the same knobs as `@diffbot/langchain`:
+
+- `fields` — metadata allowlist
+- `contentFields` — ordered priority for `content` (defaults: `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`)
+- `documentMapper` — full override
+
+A KG hit's `score` is copied into `metadata` **after** the `fields` projection so narrowing never drops it.
+
+## Retrieval and loader helpers
+
+Plain async functions for manual RAG and batch ingestion — no LangChain `Retriever` / `DocumentLoader` types. Unlike `@diffbot/langchain`, **`k` is per call** on the retrieve helpers.
+
+| Helper                          | SDK call    | Notes                                                            |
+| ------------------------------- | ----------- | ---------------------------------------------------------------- |
+| `retrieveKnowledgeGraph`        | `dql`       | DQL query in `query`; shaped `DiffbotDocument[]`                 |
+| `retrieveWebSearch`             | `webSearch` | Natural-language `query`                                         |
+| `loadExtract` / `streamExtract` | `extract`   | Serial per URL; `shapeExtractResponse` mapping                   |
+| `loadCrawl` / `streamCrawl`     | `crawl`     | Default `watch: true`; `defaultCrawlMapper` skips non-URL events |
+
+Crawl is **helpers only** — never a model-facing tool (slow, quota-heavy). Job control: call `@diffbot/typescript` directly.
+
+```ts
+import { retrieveKnowledgeGraph, loadExtract, streamCrawl } from "@diffbot/ai-sdk";
+
+const kg = await retrieveKnowledgeGraph({
+  query: 'type:Organization industries:"Artificial Intelligence"',
+  k: 5,
+  fields: ["id", "type", "name"],
+});
+
+const pages = await loadExtract({ urls: ["https://example.com"], fmt: "markdown" });
+for await (const doc of streamCrawl({ site: "https://example.com" })) {
+  /* doc.content is the crawled URL by default — chain with loadExtract for page text */
+}
+```
+
+Auth matches tools: `client` → `apiKey` → `DIFFBOT_API_TOKEN`, resolved when the function runs.
+
+## Tools and helpers
+
+| Export                                                                           | Kind                  |
+| -------------------------------------------------------------------------------- | --------------------- |
+| Tool factories (`diffbotWebSearch`, …)                                           | Model-facing `tool()` |
+| `diffbotTools`                                                                   | Bundle                |
+| `retrieveKnowledgeGraph`, `retrieveWebSearch`                                    | Retrieval             |
+| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` | Loaders               |
+| `dictToDocument`, `shapeExtractResponse`, `DEFAULT_*_CONTENT_FIELDS`             | Shaping               |
 
 ## Not yet implemented
 
 Planned for later phases:
 
-- Retrieval helpers (`retrieveKnowledgeGraph`, `retrieveWebSearch`, …)
-- Loaders (`loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`)
 - `toModelOutput` result shaping, `askJson` / structured-output passthrough
 - Structured citations through `providerMetadata` (v0.2.0)
 - Examples, Workers fixture, tools-registry listing
