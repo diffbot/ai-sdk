@@ -1,7 +1,7 @@
 {
   "name": "@diffbot/ai-sdk",
   "version": "0.1.0-dev.0",
-  "description": "Diffbot tools for the Vercel AI SDK — web search, extract, and Knowledge Graph (DQL)",
+  "description": "Diffbot tools and LLM provider for the Vercel AI SDK — web search, extract, DQL, ontology, and RAG",
   "type": "module",
   "private": true,
   "packageManager": "pnpm@10.33.0",
@@ -13,6 +13,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js",
+      "require": "./dist/provider.cjs"
     },
     "./package.json": "./package.json"
   },
