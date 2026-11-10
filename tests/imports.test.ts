@@ -76,3 +76,25 @@ describe("barrel exports", () => {
     expect(readFileSync(resolve(SRC, "provider.ts"), "utf8")).toMatch(/@ai-sdk\/openai-compatible/);
   });
 });
+
+describe("package exports map", () => {
+  const pkg = JSON.parse(readFileSync(resolve(SRC, "../package.json"), "utf8")) as {
+    exports: Record<string, unknown>;
+  };
+
+  /* CJS consumers must get `.d.cts`; a shared `.d.ts` is "masquerading as ESM". */
+  it.each([
+    [".", "index"],
+    ["./provider", "provider"],
+  ])("%s pairs each format with its own declarations", (subpath, stem) => {
+    expect(pkg.exports[subpath]).toEqual({
+      import: { types: `./dist/${stem}.d.ts`, default: `./dist/${stem}.js` },
+      require: { types: `./dist/${stem}.d.cts`, default: `./dist/${stem}.cjs` },
+    });
+  });
+
+  it("builds one tsup entry per subpath", () => {
+    const tsup = readFileSync(resolve(SRC, "../tsup.config.ts"), "utf8");
+    expect(tsup).toMatch(/entry:\s*\["src\/index\.ts",\s*"src\/provider\.ts"\]/);
+  });
+});
