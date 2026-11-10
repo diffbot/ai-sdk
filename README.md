@@ -81,7 +81,8 @@ const subset = diffbotTools({ only: ["diffbot_web_search", "diffbot_extract"] })
 
 Every tool in one bundle shares one client. `ontologyStore` is forwarded to
 `diffbot_ontology`; the other auth options (`client`, `apiKey`, `timeout`, `fetch`, `env`)
-apply to all of them.
+apply to all of them. When the bundle includes `diffbot_ask` and builds its own client, the
+timeout defaults to 120 s (see [`diffbotAsk`](#diffbotask)).
 
 ## Tools
 
@@ -187,7 +188,9 @@ Run DQL variants in parallel at `size=0` and return `{ query, hits }[]` in input
 
 Ask Diffbot's RAG LLM a natural-language `question` (string, required). Aggregates the streamed answer into one string.
 
-The RAG endpoint routinely takes 15–30 s and sometimes longer. When this package builds the client for `diffbotAsk`, the default timeout is **120 s** (override with `timeout:` on the factory, or pass a `client` with your own `timeout`). Other tools keep the SDK's 30 s default unless you set `timeout` on the factory or inject a client.
+The RAG endpoint routinely takes 15–30 s and sometimes longer, so when this package builds the client for `diffbotAsk` it defaults the timeout to **120 s** instead of `@diffbot/typescript`'s 30 s. Set `timeout` on the factory to override it; an injected `client` always keeps its own timeout.
+
+The SDK's timeout is per client and a bundle shares one client, so `diffbotTools()` applies the same 120 s default to every tool in the bundle whenever `diffbot_ask` is included. Without `diffbot_ask` (via `only`), and for the standalone factories, the other tools keep the SDK's 30 s default.
 
 ## Diffbot LLM provider
 

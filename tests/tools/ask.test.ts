@@ -1,5 +1,6 @@
-import { diffbotAsk, diffbotAskInputSchema } from "../../src/tools/ask.js";
-import { describe, expect, it } from "vitest";
+import { DiffbotClient } from "@diffbot/typescript";
+import { DEFAULT_ASK_TIMEOUT_MS, diffbotAsk, diffbotAskInputSchema } from "../../src/tools/ask.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createMockFetch,
   jsonResponse,
@@ -76,14 +77,32 @@ describe("diffbotAsk", () => {
     expect(typeof tool.execute).toBe("function");
   });
 
-  it("defaults client timeout to 120s when building its own client", async () => {
-    let seen: AbortSignal | undefined;
-    const fetch: typeof globalThis.fetch = async (_input, init) => {
-      seen = init?.signal ?? undefined;
-      return sseResponse(ASK_SSE);
-    };
-    const tool = diffbotAsk({ apiKey: "test-token", fetch });
-    await tool.execute!({ question: "q" }, toolExecOptions());
-    expect(seen?.aborted).toBe(false);
+  describe("timeout", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    async function requestTimeout(options: Parameters<typeof diffbotAsk>[0]): Promise<unknown> {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      await diffbotAsk(options).execute!({ question: "q" }, toolExecOptions());
+      expect(spy).toHaveBeenCalledTimes(1);
+      return spy.mock.calls[0]![0];
+    }
+
+    const fetch = createMockFetch(() => sseResponse(ASK_SSE));
+
+    it("defaults to 120s when the package builds the client", async () => {
+      expect(await requestTimeout({ apiKey: "t", fetch })).toBe(DEFAULT_ASK_TIMEOUT_MS);
+      expect(DEFAULT_ASK_TIMEOUT_MS).toBe(120_000);
+    });
+
+    it("respects an explicit factory timeout", async () => {
+      expect(await requestTimeout({ apiKey: "t", fetch, timeout: 5_000 })).toBe(5_000);
+    });
+
+    it("leaves an injected client's timeout alone", async () => {
+      const client = new DiffbotClient({ token: "t", fetch });
+      expect(await requestTimeout({ client, timeout: 999 })).toBe(30_000);
+    });
   });
 });

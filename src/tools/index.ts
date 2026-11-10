@@ -1,7 +1,7 @@
 import type { OntologyStore } from "@diffbot/typescript";
 import type { Tool } from "ai";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
-import { createAskTool } from "./ask.js";
+import { createAskTool, withAskTimeout } from "./ask.js";
 import { createDqlProbeTool } from "./dql-probe.js";
 import { createEntitiesTool } from "./entities.js";
 import { createExtractTool } from "./extract.js";
@@ -35,10 +35,12 @@ const TOOL_ORDER: readonly DiffbotToolName[] = [
 ];
 
 export function diffbotTools(options?: DiffbotToolsOptions): Record<DiffbotToolName, Tool> {
-  const { only, ontologyStore, ...auth } = options ?? {};
-  const resolveClient = createClientResolver(auth);
-
+  const { only, ontologyStore, ...baseAuth } = options ?? {};
   const names = only ? TOOL_ORDER.filter((name) => only.includes(name)) : TOOL_ORDER;
+
+  /* SDK timeouts are per client, and the bundle shares one, so ask's default covers it all. */
+  const auth = names.includes("diffbot_ask") ? withAskTimeout(baseAuth) : baseAuth;
+  const resolveClient = createClientResolver(auth);
 
   const out = {} as Record<DiffbotToolName, Tool>;
   for (const name of names) {
@@ -61,12 +63,9 @@ export function diffbotTools(options?: DiffbotToolsOptions): Record<DiffbotToolN
       case "diffbot_dql_probe":
         out[name] = createDqlProbeTool(auth, resolveClient);
         break;
-      case "diffbot_ask": {
-        const askAuth =
-          auth.client === undefined ? { ...auth, timeout: auth.timeout ?? 120_000 } : auth;
-        out[name] = createAskTool(auth, createClientResolver(askAuth));
+      case "diffbot_ask":
+        out[name] = createAskTool(auth, resolveClient);
         break;
-      }
     }
   }
   return out;

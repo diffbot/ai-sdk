@@ -1,7 +1,12 @@
 import { DiffbotClient, KVOntologyStore, type KVLike } from "@diffbot/typescript";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { diffbotTools } from "../../src/tools/index.js";
-import { createMockFetch, jsonResponse, type MockRequest } from "../helpers/mock-fetch.js";
+import {
+  createMockFetch,
+  jsonResponse,
+  sseResponse,
+  type MockRequest,
+} from "../helpers/mock-fetch.js";
 import { toolExecOptions } from "../helpers/tool-exec.js";
 
 describe("diffbotTools", () => {
@@ -48,6 +53,40 @@ describe("diffbotTools", () => {
     const bearers = fetchSpy.mock.calls.map((c) => c[0]!.headers.get("Authorization"));
     expect(tokens.filter(Boolean)).toEqual(["shared-token"]);
     expect(bearers.filter(Boolean)).toEqual(["Bearer shared-token"]);
+  });
+
+  describe("timeout", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const fetch = createMockFetch((req) =>
+      req.url.endsWith("/chat/completions")
+        ? sseResponse('data: {"choices": [{"delta": {"content": "ok"}}]}\ndata: [DONE]\n')
+        : jsonResponse({ search_results: [] }),
+    );
+
+    async function timeoutsFor(options: Parameters<typeof diffbotTools>[0]): Promise<unknown[]> {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      const tools = diffbotTools(options);
+      await tools.diffbot_web_search?.execute!({ query: "q" }, toolExecOptions());
+      await tools.diffbot_ask?.execute!({ question: "q" }, toolExecOptions());
+      return spy.mock.calls.map((call) => call[0]);
+    }
+
+    it("builds one client with ask's 120s default when diffbot_ask is included", async () => {
+      expect(await timeoutsFor({ apiKey: "t", fetch })).toEqual([120_000, 120_000]);
+    });
+
+    it("keeps the SDK default when diffbot_ask is not selected", async () => {
+      expect(await timeoutsFor({ apiKey: "t", fetch, only: ["diffbot_web_search"] })).toEqual([
+        30_000,
+      ]);
+    });
+
+    it("an explicit timeout wins for every tool", async () => {
+      expect(await timeoutsFor({ apiKey: "t", fetch, timeout: 7_000 })).toEqual([7_000, 7_000]);
+    });
   });
 
   it("returns an empty bundle when only is empty", () => {

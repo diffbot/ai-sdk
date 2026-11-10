@@ -13,7 +13,7 @@ Precedence inside `execute` (lazy): injected `client` → `apiKey` → `resolveT
 
 ## Phase 3 scope (current)
 
-Seven tools plus retrieval/loader helpers: `retrieveKnowledgeGraph`, `retrieveWebSearch`, `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` (crawl is helpers-only, never a tool). Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). `diffbotAsk` defaults to `timeout: 120_000` when this package builds the client; injected clients keep their own timeout. No examples yet (Phase 5).
+Seven tools plus retrieval/loader helpers: `retrieveKnowledgeGraph`, `retrieveWebSearch`, `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` (crawl is helpers-only, never a tool). Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). `diffbotAsk` defaults to `timeout: 120_000` when this package builds the client; injected clients keep their own timeout. `diffbotTools()` still builds one shared client, so that default covers the whole bundle when `diffbot_ask` is included. No examples yet (Phase 5).
 
 ## CI and live tests
 

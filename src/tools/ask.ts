@@ -3,13 +3,16 @@ import { tool, type Tool } from "ai";
 import { z } from "zod";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 
-const DEFAULT_ASK_TIMEOUT_MS = 120_000;
+/** The RAG endpoint routinely runs 15–30 s; the SDK's 30 s client default is too tight. */
+export const DEFAULT_ASK_TIMEOUT_MS = 120_000;
 
-function askAuth(options?: DiffbotAskOptions): DiffbotAuth | undefined {
-  if (!options?.client) {
-    return { ...options, timeout: options?.timeout ?? DEFAULT_ASK_TIMEOUT_MS };
-  }
-  return options;
+/**
+ * Internal: default `timeout` to {@link DEFAULT_ASK_TIMEOUT_MS} when this package will build
+ * the client. An injected client keeps its own timeout.
+ */
+export function withAskTimeout<T extends DiffbotAuth>(auth: T): T {
+  if (auth.client || auth.timeout !== undefined) return auth;
+  return { ...auth, timeout: DEFAULT_ASK_TIMEOUT_MS };
 }
 
 export const diffbotAskInputSchema = z.object({
@@ -21,7 +24,7 @@ export type DiffbotAskOptions = DiffbotAuth;
 export function diffbotAsk(
   options?: DiffbotAskOptions,
 ): Tool<z.infer<typeof diffbotAskInputSchema>, string> {
-  return createAskTool(options, createClientResolver(askAuth(options)));
+  return createAskTool(options, createClientResolver(withAskTimeout(options ?? {})));
 }
 
 /** Internal: lets `diffbotTools()` share one resolver across the bundle. */
