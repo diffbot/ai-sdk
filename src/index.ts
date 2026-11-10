@@ -25,6 +25,25 @@ export { diffbotAsk, type DiffbotAskOptions } from "./tools/ask.js";
 export { diffbotTools, type DiffbotToolName, type DiffbotToolsOptions } from "./tools/index.js";
 
 export {
+  retrieveKnowledgeGraph,
+  type RetrieveKnowledgeGraphOptions,
+} from "./retrieve/knowledge-graph.js";
+export { retrieveWebSearch, type RetrieveWebSearchOptions } from "./retrieve/web-search.js";
+export {
+  loadExtract,
+  streamExtract,
+  type ExtractDocumentMapper,
+  type LoadExtractOptions,
+} from "./retrieve/extract.js";
+export {
+  loadCrawl,
+  streamCrawl,
+  defaultCrawlMapper,
+  type CrawlEventMapper,
+  type StreamCrawlOptions,
+} from "./retrieve/crawl.js";
+
+export {
   dictToDocument,
   shapeExtractResponse,
   DEFAULT_KG_CONTENT_FIELDS,
