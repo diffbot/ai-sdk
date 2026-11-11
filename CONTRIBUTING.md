@@ -23,6 +23,8 @@ CI (`.github/workflows/ci.yml`) runs lint + typecheck, unit tests + build on Nod
 DIFFBOT_API_TOKEN=your-token pnpm test:live
 ```
 
+The live config allows 180 s per test — above the 120 s client timeout in `tests/live/helpers.ts`, so a slow request fails with the client's own abort instead of an opaque vitest timeout — and retries once, because Diffbot's RAG endpoint occasionally stalls mid-stream. Keep retries out of the unit config.
+
 Live tests consume real Diffbot quota. When Phase 4 adds `.github/workflows/integration.yml`, it will run them on push to `main`, on a twice-monthly drift schedule (1st and 15th at 14:17 UTC), and on `workflow_dispatch` — never on `pull_request`. That workflow holds the secret; keep it out of `ci.yml`.
 
 ### Live-token rules (mandatory)
@@ -33,5 +35,5 @@ Live tests consume real Diffbot quota. When Phase 4 adds `.github/workflows/inte
 
 ## Layout
 
-- One tool factory per file under `src/tools/`.
+- One tool factory per file under `src/tools/`; one retrieval/loader module per Diffbot API under `src/retrieve/`.
 - Re-export public surface from `src/index.ts` only — keep `createClientResolver` internal.

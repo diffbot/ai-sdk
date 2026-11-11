@@ -223,7 +223,7 @@ Knowledge Graph and web search returns can be huge. `retrieveKnowledgeGraph` and
 - `contentFields` — ordered priority for `content` (defaults: `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`)
 - `documentMapper` — full override
 
-A KG hit's `score` is copied into `metadata` **after** the `fields` projection so narrowing never drops it.
+A KG hit's `score` is copied into `metadata` **after** the `fields` projection so narrowing never drops it. A `documentMapper` owns the whole document, so it receives the entity unshaped and no `score` is added behind it.
 
 ## Retrieval and loader helpers
 
@@ -243,6 +243,24 @@ Each returns (or yields) `DiffbotDocument` objects: `{ content: string; metadata
 - `loadExtract` / `streamExtract` — `urls` (required), `api` (default `analyze`), `fmt` (default `markdown`), `documentMapper(url, raw)`. `metadata` carries `url`, `title`, `pageUrl`, `resolvedPageUrl` and `type`. URLs are fetched one at a time, in order, and an extraction failure throws (as in `@diffbot/langchain`): `loadExtract` rejects, while `streamExtract` has already yielded the documents before the failing URL.
 - `loadCrawl` / `streamCrawl` — `site` (required), `crawlOptions` (the SDK's `CrawlOptions`; `watch` defaults to `true` so URL events are emitted), `eventMapper(event)` returning a document or `null` to skip. The default `content` is the crawled URL itself, with `url`, `status` and `crawl_timestamp` in `metadata`.
 
+`defaultCrawlMapper` drops the `job_created` event, so with `watch: false` you get no documents at all — that combination only makes sense with an `eventMapper`. Pass `crawlOptions.jobName` if you want to manage the job later; otherwise the SDK generates one and the default mapper never surfaces it. `CrawlEventType` is re-exported here for writing a mapper:
+
+```ts
+import { CrawlEventType, streamCrawl } from "@diffbot/ai-sdk";
+
+const jobs: string[] = [];
+for await (const doc of streamCrawl({
+  site: "https://example.com",
+  crawlOptions: { watch: false, jobName: "docs-crawl" },
+  eventMapper: (event) =>
+    event.eventType === CrawlEventType.JobCreated
+      ? { content: String(event.details.job_name), metadata: { ...event.details } }
+      : null,
+})) {
+  jobs.push(doc.content);
+}
+```
+
 Crawl is **helpers only** — never a model-facing tool (slow, quota-heavy). Job control (`crawlListJobs`, `crawlGetJob`, `crawlDeleteJob`): call `@diffbot/typescript` directly.
 
 ```ts
@@ -260,7 +278,7 @@ for await (const doc of streamCrawl({ site: "https://example.com" })) {
 }
 ```
 
-Auth matches tools: `client` → `apiKey` → `DIFFBOT_API_TOKEN`, resolved when the function runs.
+Auth matches tools: `client` → `apiKey` → `DIFFBOT_API_TOKEN`, resolved when the function runs. The retrieve helpers reject before any request on a bad `k` (non-integer or `<= 0`) or a `format` other than `json`; HTTP and extraction failures surface as the SDK's own `AuthError` / `RateLimitError` / `ExtractionError`, unwrapped.
 
 ## Tools and helpers
 
