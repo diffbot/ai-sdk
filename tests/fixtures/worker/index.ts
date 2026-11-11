@@ -1,13 +1,19 @@
 /*
-  Not a test and not an example: a bundling fixture. It imports every public
-  entry point of the package — the barrel and the ./provider subpath — and
-  touches the paths a Worker would, so `wrangler deploy --dry-run` fails if any
-  of them (or anything they pull in) needs a Node builtin. It is never deployed
-  or executed, and it is excluded from the root tsconfig because the Workers
-  globals it uses are not in this package's `lib`.
+  Not a test and not an example: a bundling fixture. `wrangler deploy --dry-run`
+  bundles it for workerd with no compatibility flags (see dry-run.sh), so the
+  package fails the check if anything it pulls in needs a Node builtin.
+
+  It imports both public entry points as namespaces and enumerates them, which
+  matters: with named imports esbuild tree-shakes everything the fixture does
+  not call, and a `node:*` import inside an unreached module (crawl, say) would
+  never reach the bundle. `Object.keys` on the namespace keeps every export —
+  and therefore every module behind the barrel — live.
+
+  Never deployed or executed. Excluded from the root tsconfig because the
+  Workers globals below are not in this package's `lib`.
 */
-import { diffbotTools, loadExtract, retrieveWebSearch } from "../../../src/index.js";
-import { createDiffbot } from "../../../src/provider.js";
+import * as sdk from "../../../src/index.js";
+import * as provider from "../../../src/provider.js";
 
 interface Env extends Record<string, string | undefined> {
   DIFFBOT_API_TOKEN?: string;
@@ -17,15 +23,16 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // Tools and the provider resolve the token lazily from the env bag, so
     // constructing them is safe even when the binding is unset.
-    const tools = diffbotTools({ env });
-    const diffbot = createDiffbot({ env });
+    const tools = sdk.diffbotTools({ env });
+    const diffbot = provider.createDiffbot({ env });
 
     const { searchParams } = new URL(request.url);
     const url = searchParams.get("url");
-    const docs = url ? await loadExtract({ env, urls: [url] }) : [];
-    const results = url ? [] : await retrieveWebSearch({ env, query: "diffbot", k: 1 });
+    const docs = url ? await sdk.loadExtract({ env, urls: [url] }) : [];
+    const results = url ? [] : await sdk.retrieveWebSearch({ env, query: "diffbot", k: 1 });
 
     return Response.json({
+      exports: Object.keys(sdk).concat(Object.keys(provider)),
       toolKeys: Object.keys(tools),
       model: diffbot("diffbot-small-xl").modelId,
       docs: docs.length,
