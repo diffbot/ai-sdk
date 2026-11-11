@@ -25,7 +25,7 @@ describe.skipIf(!hasToken)("retrieveKnowledgeGraph (live)", () => {
         expect(["id", "type", "name", "score"]).toContain(key);
       }
     }
-  }, 120_000);
+  });
 });
 
 describe.skipIf(!hasToken)("retrieveWebSearch (live)", () => {
@@ -48,5 +48,5 @@ describe.skipIf(!hasToken)("retrieveWebSearch (live)", () => {
       expect(typeof doc.metadata.pageUrl).toBe("string");
       expect(doc.metadata).not.toHaveProperty("content");
     }
-  }, 120_000);
+  });
 });

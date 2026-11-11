@@ -17,5 +17,5 @@ describe.skipIf(!hasToken)("diffbotEntities (live)", () => {
     )) as { entities?: unknown[] };
     expect(Array.isArray(out.entities)).toBe(true);
     expect(out.entities!.length).toBeGreaterThan(0);
-  }, 120_000);
+  });
 });

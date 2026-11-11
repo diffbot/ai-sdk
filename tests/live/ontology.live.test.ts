@@ -14,14 +14,14 @@ describe.skipIf(!hasToken)("diffbotOntology (live)", () => {
     const out = await tool.execute!({ op: "types" }, toolExecOptions());
     expect(Array.isArray(out)).toBe(true);
     expect(out as string[]).toContain("Organization");
-  }, 120_000);
+  });
 
   it("lists fields for Organization", async () => {
     const tool = diffbotOntology({ client });
     const out = await tool.execute!({ op: "fields", name: "Organization" }, toolExecOptions());
     expect(Array.isArray(out)).toBe(true);
     expect((out as string[]).length).toBeGreaterThan(0);
-  }, 120_000);
+  });
 
   it("returns {error, hint} for a type that does not exist", async () => {
     const tool = diffbotOntology({ client });
@@ -30,5 +30,5 @@ describe.skipIf(!hasToken)("diffbotOntology (live)", () => {
       toolExecOptions(),
     );
     expect(out).toMatchObject({ error: expect.any(String), hint: expect.any(String) });
-  }, 120_000);
+  });
 });

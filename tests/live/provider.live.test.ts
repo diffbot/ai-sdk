@@ -17,7 +17,7 @@ describe.skipIf(!hasToken)("createDiffbot (live)", () => {
     });
     expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
-  }, 120_000);
+  });
 
   it("streamText yields at least one text delta", async () => {
     const stream = streamText({
@@ -29,5 +29,5 @@ describe.skipIf(!hasToken)("createDiffbot (live)", () => {
       if (part.length > 0) deltas += 1;
     }
     expect(deltas).toBeGreaterThanOrEqual(1);
-  }, 120_000);
+  });
 });

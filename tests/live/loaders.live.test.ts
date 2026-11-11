@@ -21,5 +21,5 @@ describe.skipIf(!hasToken)("loadExtract (live)", () => {
       expect(doc.content.length).toBeGreaterThan(0);
       expect(doc.metadata.url).toBe(urls[i]);
     });
-  }, 120_000);
+  });
 });

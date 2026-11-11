@@ -17,5 +17,5 @@ describe.skipIf(!hasToken)("diffbotAsk (live)", () => {
     )) as string;
     expect(typeof out).toBe("string");
     expect(out.length).toBeGreaterThan(0);
-  }, 120_000);
+  });
 });

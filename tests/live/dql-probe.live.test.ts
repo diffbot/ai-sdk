@@ -20,5 +20,5 @@ describe.skipIf(!hasToken)("diffbotDqlProbe (live)", () => {
     for (const result of out) {
       expect(typeof result.hits).toBe("number");
     }
-  }, 120_000);
+  });
 });

@@ -18,5 +18,5 @@ describe.skipIf(!hasToken)("diffbotWebSearch (live)", () => {
     for (const row of rows) {
       expect(row).toHaveProperty("pageUrl");
     }
-  }, 120_000);
+  });
 });
