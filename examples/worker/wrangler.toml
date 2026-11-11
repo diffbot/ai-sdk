@@ -1,0 +1,7 @@
+# No compatibility flags on purpose: `@diffbot/ai-sdk` needs no Node builtins,
+# and leaving `nodejs_compat` off keeps it that way. The token is a secret
+# (`wrangler secret put DIFFBOT_API_TOKEN`), never a var in this file.
+name = "diffbot-ai-sdk-example"
+main = "index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = []
