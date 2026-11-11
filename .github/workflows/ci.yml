@@ -50,9 +50,16 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  peer-ai6:
-    name: peer matrix (ai@6)
+  peer-matrix:
+    # Both supported pairs, against the same source: ai@6 + @ai-sdk/openai-compatible@2
+    # and ai@7 + @3. The pairing itself lives in the `test:peer:*` scripts in
+    # package.json so the same leg can be reproduced locally.
+    name: peer matrix (${{ matrix.peer }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        peer: [ai6, ai7]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,7 +70,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:peer:ai6
+      - run: pnpm test:peer:${{ matrix.peer }}
 
   live-skip-guard:
     name: live suite skip guard (empty token)
@@ -79,3 +86,22 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: DIFFBOT_API_TOKEN="" pnpm test:live
+
+  workers:
+    # Keeps the package edge-clean: wrangler bundles the fixture for workerd
+    # with no compatibility flags, then the paired check rejects any static
+    # Node builtin import that reached the bundle. No Cloudflare credentials,
+    # so this runs on fork PRs like every other job here.
+    name: Cloudflare Workers bundle (wrangler --dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:workers

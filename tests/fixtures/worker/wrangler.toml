@@ -1,0 +1,8 @@
+# Workers-cleanliness fixture. `wrangler deploy --dry-run` bundles this package
+# for workerd with no compatibility flags, so anything reaching for a Node
+# builtin fails the build. The dry run needs no Cloudflare account or
+# credentials, which is why it can live in ci.yml and run on fork PRs.
+name = "diffbot-ai-sdk-workers-fixture"
+main = "index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = []

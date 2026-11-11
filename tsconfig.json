@@ -16,5 +16,7 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist"]
+  /* tests/fixtures/worker is bundled by wrangler, not compiled here: it uses
+     Workers globals that are not in this package's `lib`. */
+  "exclude": ["node_modules", "dist", "tests/fixtures/worker"]
 }

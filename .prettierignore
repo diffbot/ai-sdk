@@ -3,6 +3,7 @@ dist/
 coverage/
 node_modules/
 pnpm-lock.yaml
+.wrangler/
 
 # The locked implementation spec — kept byte-for-byte as authored.
 PLAN.md

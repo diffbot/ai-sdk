@@ -53,7 +53,9 @@
     "lint": "eslint . && prettier --check .",
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "test:peer:ai6": "pnpm add -D ai@6 @ai-sdk/openai-compatible@2 && pnpm typecheck && pnpm test"
+    "test:peer:ai6": "pnpm add -D ai@6 @ai-sdk/openai-compatible@2 && pnpm typecheck && pnpm test",
+    "test:peer:ai7": "pnpm add -D ai@7 @ai-sdk/openai-compatible@3 && pnpm typecheck && pnpm test",
+    "test:workers": "tests/fixtures/worker/dry-run.sh"
   },
   "dependencies": {
     "@diffbot/typescript": "^0.3.0"
