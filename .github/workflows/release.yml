@@ -35,15 +35,21 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      # Dry run of the artifact itself. `pnpm pack` works while the package is
-      # still `"private": true`, unlike `pnpm publish --dry-run`.
+      # Dry run of the artifact itself: pack the tarball and list it, so the
+      # `files` field is proven to ship `dist/` + README + LICENSE and nothing
+      # else. Works while the package is still `"private": true` — and so does
+      # `pnpm publish --dry-run`, since npm's EPRIVATE check doesn't fire in
+      # dry-run mode; that would be the stronger rehearsal, exercising the real
+      # packing and registry-resolution path rather than just the tarball.
       - name: pnpm pack
         run: |
           pnpm pack --pack-destination "$RUNNER_TEMP"
           tar -tzf "$RUNNER_TEMP"/*.tgz
 
-  # Cheap pre-flight checks, so a mistyped tag or an unflipped `private` flag
-  # fails in seconds rather than after the full verify job.
+  # Cheap pre-flight checks: a mistyped tag or an unflipped `private` flag is
+  # reported within seconds instead of at the end of a release. This job runs in
+  # parallel with `verify` rather than ahead of it, so it does not cut `verify`
+  # short — `publish` needs both.
   guards:
     name: tag and manifest guards
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
