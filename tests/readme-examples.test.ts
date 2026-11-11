@@ -48,7 +48,7 @@ function json(body: unknown): Response {
 }
 
 /** Smallest response per endpoint that the SDK's own parsers accept. */
-function stubFetch(input: RequestInfo | URL): Promise<Response> {
+function stubFetch(input: Parameters<typeof globalThis.fetch>[0]): Promise<Response> {
   const href = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   const url = new URL(href);
   requested.push(`${url.host}${url.pathname}`);
