@@ -1,0 +1,55 @@
+name: Integration (live)
+
+# Triggers are deliberately limited to push-to-main, a schedule, and manual
+# dispatch. This workflow is the only one that reads DIFFBOT_API_TOKEN, and
+# `pull_request` / `pull_request_target` must never be added: a fork PR would
+# run (or, with pull_request_target, influence) workflow code with repository
+# secrets available, which is how live API tokens leak. Fork PRs are covered
+# by ci.yml, which uses no secrets at all.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Twice-monthly API drift check: 1st and 15th at 14:17 UTC.
+    - cron: "17 14 1,15 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: live tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Without this, a missing or empty secret would make every live test skip
+      # and the run would be a misleading green. ci.yml owns the opposite case
+      # (empty token must skip cleanly); here an empty token is a failure.
+      - name: Require a live token
+        env:
+          DIFFBOT_API_TOKEN: ${{ secrets.DIFFBOT_API_TOKEN }}
+        run: |
+          if [ -z "${DIFFBOT_API_TOKEN//[[:space:]]/}" ]; then
+            echo "::error::DIFFBOT_API_TOKEN secret is missing or empty; the live suite would silently skip."
+            exit 1
+          fi
+          echo "DIFFBOT_API_TOKEN is set."
+
+      - name: pnpm test:live
+        env:
+          DIFFBOT_API_TOKEN: ${{ secrets.DIFFBOT_API_TOKEN }}
+        run: pnpm test:live
