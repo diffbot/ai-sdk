@@ -187,17 +187,28 @@ describe("retrieveKnowledgeGraph request wiring", () => {
     ).rejects.toThrow(/`k` must be a positive integer/);
   });
 
-  it("throws when the endpoint returns a non-JSON-object body", async () => {
+  it("rejects a non-JSON format before spending a request", async () => {
     await expect(
       retrieveKnowledgeGraph({
         apiKey: "t",
-        fetch: createMockFetch((req) => {
-          expect(req.params.get("format")).toBe("csv");
-          return jsonResponse("id,name\nE1,Acme AI");
+        fetch: createMockFetch(() => {
+          throw new Error("should not be called");
         }),
         query: "type:Organization",
         format: "csv",
       }),
-    ).rejects.toThrow(/non-JSON body/);
+    ).rejects.toThrow(/`format` must be "json"; got "csv"/);
+  });
+
+  it("accepts an explicit json format", async () => {
+    const docs = await retrieve(
+      (req) => {
+        /* The SDK omits the param for the default format. */
+        expect(req.params.has("format")).toBe(false);
+        return jsonResponse(SAMPLE_BODY);
+      },
+      { query: "q", format: "json" },
+    );
+    expect(docs).toHaveLength(2);
   });
 });

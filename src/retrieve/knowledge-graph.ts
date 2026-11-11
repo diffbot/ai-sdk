@@ -18,6 +18,7 @@ export interface RetrieveKnowledgeGraphOptions extends DiffbotAuth {
   from?: number;
   filter?: string;
   exportspec?: string;
+  /** Only `"json"` can be shaped into documents; anything else throws before the request. */
   format?: string;
   extra?: Record<string, string>;
   fields?: readonly string[];
@@ -42,6 +43,15 @@ export async function retrieveKnowledgeGraph(
     ...auth
   } = options;
 
+  /* Checked before the request: a CSV round-trip would spend KG credits only to throw. */
+  if (format !== "json") {
+    throw new TypeError(
+      `retrieveKnowledgeGraph shapes JSON hits, so \`format\` must be "json"; got ${JSON.stringify(
+        format,
+      )}. Call \`dql\` from @diffbot/typescript for other formats.`,
+    );
+  }
+
   const k = resolveK(kRaw);
   const client = createClientResolver(auth)();
 
@@ -49,14 +59,13 @@ export async function retrieveKnowledgeGraph(
     size: k,
     from,
     format,
-    raw: format !== "json",
     ...(filter !== undefined ? { filter } : {}),
     ...(exportspec !== undefined ? { exportspec } : {}),
     ...(extra !== undefined ? { extra } : {}),
   });
 
-  if (body instanceof Uint8Array || typeof body !== "object" || body === null) {
-    throw new TypeError("DQL returned a non-JSON body; set `format: 'json'` to use this helper.");
+  if (body instanceof Uint8Array || !isPlainObject(body)) {
+    throw new TypeError("DQL returned a non-JSON body; this helper needs `format: 'json'`.");
   }
 
   const data = Array.isArray(body.data) ? (body.data as JsonObject[]) : [];
