@@ -299,7 +299,7 @@ Planned for later phases:
 
 - `toModelOutput` result shaping, `askJson` / structured-output passthrough
 - Structured citations through `providerMetadata` (v0.2.0)
-- Examples, Workers fixture, tools-registry listing
+- Examples and the tools-registry listing
 
 See [`PLAN.md`](./PLAN.md) for the full roadmap.
 
@@ -319,7 +319,7 @@ Live tests (consume quota, require a token):
 DIFFBOT_API_TOKEN=your-token pnpm test:live
 ```
 
-A future `integration.yml` workflow (Phase 4) will run this suite on pushes to `main`, twice a month for API drift (1st and 15th), and on manual dispatch — not on pull requests.
+The `integration.yml` workflow runs this suite on pushes to `main`, twice a month for API drift (1st and 15th), and on manual dispatch — never on pull requests, so the token stays out of reach of fork code. `pnpm test:workers` bundles the Cloudflare Workers fixture with `wrangler deploy --dry-run` and needs no Cloudflare account. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the full workflow and release rundown.
 
 ## License
 
