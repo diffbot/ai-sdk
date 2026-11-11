@@ -1,0 +1,39 @@
+name: AI SDK canary
+
+# Installs the current `ai` and `@ai-sdk/openai-compatible` releases over the
+# lockfile and re-runs typecheck + unit tests, so a breaking major (or a
+# breaking minor) surfaces here as a failing scheduled run rather than as a
+# user bug report. Uses no secrets and never commits the upgrade.
+on:
+  schedule:
+    # Mondays, 14:17 UTC.
+    - cron: "17 14 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: canary-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  latest-peers:
+    name: ai@latest + @ai-sdk/openai-compatible@latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Same leg as `pnpm test:peer:latest` locally: upgrade, then typecheck
+      # and unit tests against unchanged source.
+      - run: pnpm test:peer:latest
+      - name: Report the versions that were tested
+        if: always()
+        run: pnpm list --depth 0 ai @ai-sdk/openai-compatible zod
