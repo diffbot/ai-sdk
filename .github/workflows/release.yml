@@ -1,0 +1,113 @@
+name: Release
+
+# Only a `v*` tag publishes. workflow_dispatch exists so the whole pipeline can
+# be rehearsed without releasing: it runs the verify job (lint, typecheck,
+# tests, build, `pnpm pack`) and nothing else. Every step that publishes to npm
+# or creates a GitHub release is gated on a real tag push, so a dispatch — on
+# any branch, by anyone with write access — can never ship a version.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (lint, typecheck, test, build, pack)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      # Dry run of the artifact itself. `pnpm pack` works while the package is
+      # still `"private": true`, unlike `pnpm publish --dry-run`.
+      - name: pnpm pack
+        run: |
+          pnpm pack --pack-destination "$RUNNER_TEMP"
+          tar -tzf "$RUNNER_TEMP"/*.tgz
+
+  # Cheap pre-flight checks, so a mistyped tag or an unflipped `private` flag
+  # fails in seconds rather than after the full verify job.
+  guards:
+    name: tag and manifest guards
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tag must match package.json version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)."
+            exit 1
+          fi
+          echo "Tag $GITHUB_REF_NAME matches package.json version $version."
+      - name: package.json must not be private
+        run: |
+          if [ "$(node -p "String(require('./package.json').private === true)")" = "true" ]; then
+            echo '::error::package.json still has "private": true — set it to false before tagging a release (PLAN.md §7.4 step 0c).'
+            exit 1
+          fi
+
+  publish:
+    name: publish to npm
+    needs: [guards, verify]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: pnpm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --provenance --no-git-checks
+
+  github-release:
+    name: create GitHub release
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the only job that writes to the repo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: gh release create
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
