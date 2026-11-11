@@ -87,10 +87,22 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # The dist-tag is derived from the version, not from the tag name: a
+      # prerelease (anything containing a `-`, e.g. 0.1.0-rc.1) publishes as
+      # `next` so a plain `npm install @diffbot/ai-sdk` keeps resolving to the
+      # last stable release. The guards above already proved the git tag equals
+      # this version.
       - name: pnpm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          case "$version" in
+            *-*) dist_tag=next ;;
+            *) dist_tag=latest ;;
+          esac
+          echo "Publishing $version with --tag $dist_tag."
+          pnpm publish --access public --provenance --no-git-checks --tag "$dist_tag"
 
   github-release:
     name: create GitHub release
