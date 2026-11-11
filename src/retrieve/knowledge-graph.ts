@@ -2,17 +2,18 @@ import { dql, type JsonObject } from "@diffbot/typescript";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 import {
   DEFAULT_KG_CONTENT_FIELDS,
-  dictToDocument,
   resolveK,
+  shapeSource,
   type DiffbotDocument,
-  type DocumentMapper,
+  type DiffbotDocumentOptions,
+  type ResolvedShapeOptions,
 } from "../documents.js";
 
 function isPlainObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export interface RetrieveKnowledgeGraphOptions extends DiffbotAuth {
+export interface RetrieveKnowledgeGraphOptions extends DiffbotAuth, DiffbotDocumentOptions {
   query: string;
   k?: number;
   from?: number;
@@ -21,9 +22,6 @@ export interface RetrieveKnowledgeGraphOptions extends DiffbotAuth {
   /** Only `"json"` can be shaped into documents; anything else throws before the request. */
   format?: string;
   extra?: Record<string, string>;
-  fields?: readonly string[];
-  contentFields?: readonly string[];
-  documentMapper?: DocumentMapper;
 }
 
 export async function retrieveKnowledgeGraph(
@@ -74,30 +72,13 @@ export async function retrieveKnowledgeGraph(
     .map((hit) => hitToDocument(hit, { fields, contentFields, documentMapper }));
 }
 
-function hitToDocument(
-  hit: JsonObject,
-  {
-    fields,
-    contentFields,
-    documentMapper,
-  }: {
-    fields?: readonly string[];
-    contentFields: readonly string[];
-    documentMapper?: DocumentMapper;
-  },
-): DiffbotDocument {
+function hitToDocument(hit: JsonObject, shape: ResolvedShapeOptions): DiffbotDocument {
   const entity = isPlainObject(hit.entity) ? hit.entity : hit;
+  const doc = shapeSource(entity, shape);
 
-  if (documentMapper) {
-    return documentMapper(entity as Record<string, unknown>);
-  }
-
-  const doc = dictToDocument(entity as Record<string, unknown>, {
-    contentFields,
-    fields,
-  });
-
-  if ("score" in hit) {
+  /* After the projection, so a narrow `fields` list never drops the score. A documentMapper
+     owns the whole document, including whether a score belongs in it. */
+  if (!shape.documentMapper && "score" in hit) {
     doc.metadata.score = hit.score;
   }
   return doc;

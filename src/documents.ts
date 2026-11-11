@@ -44,6 +44,24 @@ export function dictToDocument(
   return { content, metadata };
 }
 
+/**
+ * Internal: a retrieve helper's shaping options once `contentFields` has its default.
+ * Not exported from the barrel.
+ */
+export interface ResolvedShapeOptions extends DiffbotDocumentOptions {
+  contentFields: readonly string[];
+}
+
+/** Internal: `documentMapper`, or the default `fields` / `contentFields` projection. */
+export function shapeSource(
+  source: Record<string, unknown>,
+  { fields, contentFields, documentMapper }: ResolvedShapeOptions,
+): DiffbotDocument {
+  return documentMapper
+    ? documentMapper(source)
+    : dictToDocument(source, { contentFields, fields });
+}
+
 /** Internal: validates a retrieve helper's `k`. Not exported from the barrel. */
 export function resolveK(k: number): number {
   if (!Number.isInteger(k) || k <= 0) {

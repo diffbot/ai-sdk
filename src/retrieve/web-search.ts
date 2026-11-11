@@ -2,20 +2,17 @@ import { webSearch, type JsonObject, type SnippetLength } from "@diffbot/typescr
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 import {
   DEFAULT_WEB_CONTENT_FIELDS,
-  dictToDocument,
   resolveK,
+  shapeSource,
   type DiffbotDocument,
-  type DocumentMapper,
+  type DiffbotDocumentOptions,
 } from "../documents.js";
 
-export interface RetrieveWebSearchOptions extends DiffbotAuth {
+export interface RetrieveWebSearchOptions extends DiffbotAuth, DiffbotDocumentOptions {
   query: string;
   k?: number;
   maxTokens?: number;
   snippetLength?: SnippetLength;
-  fields?: readonly string[];
-  contentFields?: readonly string[];
-  documentMapper?: DocumentMapper;
 }
 
 export async function retrieveWebSearch(
@@ -44,26 +41,5 @@ export async function retrieveWebSearch(
   const results = Array.isArray(body.search_results) ? (body.search_results as JsonObject[]) : [];
   return results
     .slice(0, k)
-    .map((hit) => hitToDocument(hit, { fields, contentFields, documentMapper }));
-}
-
-function hitToDocument(
-  hit: JsonObject,
-  {
-    fields,
-    contentFields,
-    documentMapper,
-  }: {
-    fields?: readonly string[];
-    contentFields: readonly string[];
-    documentMapper?: DocumentMapper;
-  },
-): DiffbotDocument {
-  if (documentMapper) {
-    return documentMapper(hit as Record<string, unknown>);
-  }
-  return dictToDocument(hit as Record<string, unknown>, {
-    contentFields,
-    fields,
-  });
+    .map((hit) => shapeSource(hit, { fields, contentFields, documentMapper }));
 }
