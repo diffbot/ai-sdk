@@ -106,3 +106,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:workers
+
+  docs-examples:
+    # Job (f) of PLAN.md §7.1, widened by one: the registry `codeExample` and
+    # every README ts block are compiled against src/ (`typecheck:docs`), and
+    # so are the runnable examples (`typecheck:examples`). Catches the failure
+    # mode where a snippet reads fine and no longer compiles. The executing
+    # half of the README suite runs in `pnpm test`, in the test job.
+    #
+    # Needs no secrets, like every other job in this workflow.
+    name: doc + example typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck:docs
+      - run: pnpm typecheck:examples
