@@ -62,7 +62,7 @@ function importGraph(entry: string): string[] {
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "../src");
 
 describe("barrel exports", () => {
-  it("runtime value exports match the Phase 3 list", () => {
+  it("runtime value exports match the Phase 4 list", () => {
     expect(Object.keys(mod).sort()).toEqual(EXPECTED_VALUES);
   });
 
