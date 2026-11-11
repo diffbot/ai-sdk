@@ -55,4 +55,16 @@ export {
 } from "./documents.js";
 
 export type { DiffbotAuth } from "./client.js";
-export type { DiffbotClient, OntologyStore, KVOntologyStore } from "@diffbot/typescript";
+
+/* SDK re-exports: every `@diffbot/typescript` name that appears in this package's public
+   signatures, so callers never have to import it directly (it is our dependency, not a peer). */
+export { CrawlEventType } from "@diffbot/typescript";
+export type {
+  CrawlEvent,
+  CrawlOptions,
+  DiffbotClient,
+  JsonObject,
+  KVOntologyStore,
+  OntologyStore,
+  SnippetLength,
+} from "@diffbot/typescript";

@@ -266,13 +266,14 @@ Auth matches tools: `client` → `apiKey` → `DIFFBOT_API_TOKEN`, resolved when
 
 Every runtime export of `@diffbot/ai-sdk`:
 
-| Export                                                                                                                               | Kind                  |
-| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk` | Model-facing `tool()` |
-| `diffbotTools`                                                                                                                       | Bundle                |
-| `retrieveKnowledgeGraph`, `retrieveWebSearch`                                                                                        | Retrieval             |
-| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`                                                     | Loaders               |
-| `dictToDocument`, `shapeExtractResponse`, `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`                                  | Shaping               |
+| Export                                                                                                                               | Kind                   |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk` | Model-facing `tool()`  |
+| `diffbotTools`                                                                                                                       | Bundle                 |
+| `retrieveKnowledgeGraph`, `retrieveWebSearch`                                                                                        | Retrieval              |
+| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`                                                     | Loaders                |
+| `dictToDocument`, `shapeExtractResponse`, `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`                                  | Shaping                |
+| `CrawlEventType`                                                                                                                     | Re-export from the SDK |
 
 ## Not yet implemented
 

@@ -6,6 +6,7 @@ import * as mod from "../src/index.js";
 import * as provider from "../src/provider.js";
 
 const EXPECTED_VALUES = [
+  "CrawlEventType",
   "DEFAULT_KG_CONTENT_FIELDS",
   "DEFAULT_WEB_CONTENT_FIELDS",
   "defaultCrawlMapper",
