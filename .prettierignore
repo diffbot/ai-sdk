@@ -7,3 +7,7 @@ pnpm-lock.yaml
 
 # The locked implementation spec — kept byte-for-byte as authored.
 PLAN.md
+
+# Generated doc-example scratch dirs
+.doc-examples/
+tests/.generated/
