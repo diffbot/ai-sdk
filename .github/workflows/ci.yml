@@ -89,9 +89,10 @@ jobs:
 
   workers:
     # Keeps the package edge-clean: wrangler bundles the fixture for workerd
-    # with no compatibility flags, then the paired check rejects any static
-    # Node builtin import that reached the bundle. No Cloudflare credentials,
-    # so this runs on fork PRs like every other job here.
+    # with no compatibility flags, then the paired scan rejects any static
+    # Node builtin import that reached the bundle, prefixed (`node:fs`) or
+    # bare (`fs`). No Cloudflare credentials, so this runs on fork PRs like
+    # every other job here.
     name: Cloudflare Workers bundle (wrangler --dry-run)
     runs-on: ubuntu-latest
     steps:
