@@ -50,6 +50,7 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
+    "typecheck:examples": "tsc --noEmit -p examples/tsconfig.json",
     "lint": "eslint . && prettier --check .",
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",

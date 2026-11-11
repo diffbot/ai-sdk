@@ -1,0 +1,25 @@
+{
+  /* Typechecks every example against this package's *source*, so an example
+     that drifts from the barrel fails `pnpm typecheck:examples` (ci.yml job f)
+     rather than at a reader's terminal. At runtime the same imports resolve
+     through the package's own `exports` map to `dist/` — hence `pnpm build`
+     before `node examples/…`. */
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": "..",
+    "paths": {
+      "@diffbot/ai-sdk": ["./src/index.ts"],
+      "@diffbot/ai-sdk/provider": ["./src/provider.ts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}
