@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CrawlEventType, type CrawlEvent } from "@diffbot/typescript";
 import type { DiffbotDocument } from "../../src/documents.js";
-import { defaultCrawlMapper, loadCrawl, streamCrawl } from "../../src/retrieve/crawl.js";
+import {
+  defaultCrawlMapper,
+  defaultCrawlRecordMapper,
+  loadCrawl,
+  streamCrawl,
+} from "../../src/retrieve/crawl.js";
 import { createMockFetch, jsonResponse } from "../helpers/mock-fetch.js";
 
 const CRAWL_URL = "https://api.diffbot.com/v3/crawl";
@@ -119,5 +124,127 @@ describe("streamCrawl watch defaulting", () => {
     }
     expect(docs).toHaveLength(1);
     expect(docs[0]!.content).toBe(CrawlEventType.JobCreated);
+  });
+});
+
+describe("loadCrawl download path", () => {
+  const RECORDS = [
+    {
+      pageUrl: "https://example.com/a",
+      title: "A",
+      content: "Body A",
+      type: "article",
+      id: 1,
+      token: "secret-echoed-by-server",
+      timestamp: "2026-01-01T00:00:00Z",
+    },
+    { pageUrl: "https://example.com/b", title: "B" },
+  ];
+
+  function crawlFetch(statuses: number[], log: Array<{ kind: string; params: URLSearchParams }>) {
+    let polls = 0;
+    return createMockFetch((req) => {
+      if (req.url.endsWith("/data")) {
+        log.push({ kind: "data", params: req.params });
+        return jsonResponse(RECORDS);
+      }
+      if (req.params.get("seeds")) {
+        log.push({ kind: "create", params: req.params });
+        return jsonResponse({ jobs: [{ name: "test-job" }] });
+      }
+      log.push({ kind: "status", params: req.params });
+      const status = statuses[Math.min(polls++, statuses.length - 1)]!;
+      return jsonResponse({ jobs: [{ name: "test-job", jobStatus: { status, message: "m" } }] });
+    });
+  }
+
+  it("creates without watching, polls until terminal, then downloads JSON records", async () => {
+    const log: Array<{ kind: string; params: URLSearchParams }> = [];
+    const docs = await loadCrawl({
+      apiKey: "test-token",
+      fetch: crawlFetch([0, 7, 9], log),
+      site: "https://example.com",
+      crawlOptions: { jobName: "test-job", pollInterval: 0 },
+      download: { num: 5 },
+    });
+
+    expect(log.map((l) => l.kind)).toEqual(["create", "status", "status", "status", "data"]);
+    const data = log.at(-1)!.params;
+    expect(data.get("name")).toBe("test-job");
+    expect(data.get("num")).toBe("5");
+    expect(data.has("format")).toBe(false);
+    expect(data.has("type")).toBe(false);
+
+    expect(docs).toHaveLength(2);
+    expect(docs[0]).toEqual({
+      content: "Body A",
+      metadata: {
+        url: "https://example.com/a",
+        title: "A",
+        type: "article",
+        parentUrl: undefined,
+        id: 1,
+        crawl_timestamp: "2026-01-01T00:00:00Z",
+      },
+    });
+    expect(docs[1]!.content).toBe("B");
+    expect(JSON.stringify(docs)).not.toContain("secret-echoed-by-server");
+  });
+
+  it("accepts `download: true` and a custom recordMapper that can drop records", async () => {
+    const log: Array<{ kind: string; params: URLSearchParams }> = [];
+    const all = await loadCrawl({
+      apiKey: "t",
+      fetch: crawlFetch([2], log),
+      site: "https://example.com",
+      crawlOptions: { jobName: "test-job", pollInterval: 0 },
+      download: true,
+    });
+    expect(all).toHaveLength(2);
+
+    const some = await loadCrawl({
+      apiKey: "t",
+      fetch: crawlFetch([2], []),
+      site: "https://example.com",
+      crawlOptions: { jobName: "test-job", pollInterval: 0 },
+      download: { recordMapper: (r) => (r.title === "B" ? defaultCrawlRecordMapper(r) : null) },
+    });
+    expect(some.map((d) => d.metadata.title)).toEqual(["B"]);
+  });
+
+  it("throws a JobError when the job ends in failure, without downloading", async () => {
+    const log: Array<{ kind: string; params: URLSearchParams }> = [];
+    const fetch = createMockFetch((req) => {
+      log.push({ kind: req.url.endsWith("/data") ? "data" : "other", params: req.params });
+      return req.params.get("seeds")
+        ? jsonResponse({ jobs: [{ name: "test-job" }] })
+        : jsonResponse({ jobs: [{ jobStatus: { status: 4, message: "Job failed: bad seed" } }] });
+    });
+    await expect(
+      loadCrawl({
+        apiKey: "t",
+        fetch,
+        site: "https://example.com",
+        crawlOptions: { jobName: "test-job", pollInterval: 0 },
+        download: true,
+      }),
+    ).rejects.toThrow(/Crawler job failed/);
+    expect(log.some((l) => l.kind === "data")).toBe(false);
+  });
+
+  it("rejects type: urls, which is CSV rather than records", async () => {
+    await expect(
+      loadCrawl({
+        apiKey: "t",
+        fetch: createMockFetch(() => jsonResponse({})),
+        site: "https://example.com",
+        download: { type: "urls" },
+      }),
+    ).rejects.toThrow(/returns CSV/);
+  });
+
+  it("falls back to title, then URL, for content", () => {
+    expect(defaultCrawlRecordMapper({ pageUrl: "u", title: "T" }).content).toBe("T");
+    expect(defaultCrawlRecordMapper({ pageUrl: "u" }).content).toBe("u");
   });
 });

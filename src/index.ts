@@ -39,7 +39,10 @@ export {
   loadCrawl,
   streamCrawl,
   defaultCrawlMapper,
+  defaultCrawlRecordMapper,
+  type CrawlDownloadLoadOptions,
   type CrawlEventMapper,
+  type CrawlRecordMapper,
   type StreamCrawlOptions,
 } from "./retrieve/crawl.js";
 
