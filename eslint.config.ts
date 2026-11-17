@@ -8,6 +8,7 @@ export default tseslint.config(
        tsc and vitest are what judge them, not eslint. */
     ignores: [
       "dist/**",
+      ".pnpmfile.cjs",
       "node_modules/**",
       "coverage/**",
       "**/.wrangler/**",

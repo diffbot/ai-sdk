@@ -10,14 +10,21 @@ const path = require("node:path");
 
 // DIFFBOT_TYPESCRIPT_DIR (relative to this repo or absolute) overrides the sibling path, e.g.
 // to point at a separately built copy when the sibling's dist/ is stale.
-const sibling = path.resolve(__dirname, process.env.DIFFBOT_TYPESCRIPT_DIR || "../diffbot-typescript");
+const sibling = path.resolve(
+  __dirname,
+  process.env.DIFFBOT_TYPESCRIPT_DIR || "../diffbot-typescript",
+);
 const hasSibling = fs.existsSync(path.join(sibling, "package.json"));
 const linkTarget = "link:" + path.relative(__dirname, sibling);
 
 module.exports = {
   hooks: {
     readPackage(pkg) {
-      if (hasSibling && pkg.name === "@diffbot/ai-sdk" && pkg.dependencies?.["@diffbot/typescript"]) {
+      if (
+        hasSibling &&
+        pkg.name === "@diffbot/ai-sdk" &&
+        pkg.dependencies?.["@diffbot/typescript"]
+      ) {
         pkg.dependencies["@diffbot/typescript"] = linkTarget;
       }
       return pkg;
