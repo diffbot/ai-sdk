@@ -1,4 +1,10 @@
-import { extract, ExtractionError, type DiffbotClient, type JsonObject } from "@diffbot/typescript";
+import {
+  extract,
+  ExtractionError,
+  type DiffbotClient,
+  type ExtractOptions,
+  type JsonObject,
+} from "@diffbot/typescript";
 import { tool, type Tool } from "ai";
 import { z } from "zod";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
@@ -7,6 +13,12 @@ import { shapeExtractResponse, type ShapedExtractResponse } from "../documents.j
 export interface DiffbotExtractOptions extends DiffbotAuth {
   api?: string;
   fmt?: string;
+  /**
+   * Extra `@diffbot/typescript` extract options (`timeout`, `mode`, `fields`, `fallback`,
+   * `discussion`, `paging`, `extra`, …) applied to every call. Set by the developer, not the
+   * model; the tool's input schema is unchanged.
+   */
+  extractOptions?: ExtractOptions;
 }
 
 export interface DiffbotExtractToolError {
@@ -50,7 +62,14 @@ export function createExtractTool(
       const fmt = input.fmt ?? options?.fmt ?? "markdown";
 
       try {
-        const raw = (await extract(client, input.url, api, fmt)) as JsonObject;
+        const raw = (await extract(
+          client,
+          input.url,
+          api,
+          fmt,
+          // `api` is a runtime string, so the per-API option union cannot be narrowed here.
+          options?.extractOptions as Parameters<typeof extract<string>>[4],
+        )) as JsonObject;
         return shapeExtractResponse(raw);
       } catch (e) {
         if (e instanceof ExtractionError) {

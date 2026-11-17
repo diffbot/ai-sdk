@@ -4,15 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-pnpmfileChecksum: sha256-fg5/4wz7hn/Yc5bVuAjD78yR5opJnyjgjKYsazChans=
+pnpmfileChecksum: sha256-gY/fcS52hpgZg2yTS1qqEdIOZw9YciuCOtugpxYnAV8=
 
 importers:
 
   .:
     dependencies:
       '@diffbot/typescript':
-        specifier: link:../diffbot-typescript
-        version: link:../diffbot-typescript
+        specifier: link:../../tmp/sdk-build/diffbot-typescript
+        version: link:../../tmp/sdk-build/diffbot-typescript
     devDependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^3.0.0
