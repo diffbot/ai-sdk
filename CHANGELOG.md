@@ -24,3 +24,15 @@ for the Vercel AI SDK (`ai` ^6 or ^7).
   timeout.
 - Examples: `examples/company-research` (tool-calling agent), `examples/manual-rag` (retrieve
   helpers, no tool loop), and `examples/worker` (Workers `env` bag and streamed RAG).
+- `extractOptions` on `diffbotExtract`, `loadExtract`, and `streamExtract` passes the SDK's
+  `ExtractOptions` (`timeout`, `mode`, `fields`, `fallback`, `discussion`, `paging`, …) through to
+  `extract`. The tool's model-facing input schema is unchanged, and `api`/`fmt` defaults stay.
+- Opt-in `download` on `loadCrawl` / `streamCrawl`: start the job without watching, poll it, and
+  map the records from `crawlDownload` to documents (`defaultCrawlRecordMapper`). The default watch
+  stream is unchanged.
+
+### Changed
+
+- Depends on `@diffbot/typescript` `^0.5.0`, which POSTs DQL. Unit-test mocks now assert the POST
+  JSON body. Until 0.5.0 is on npm, `.pnpmfile.cjs` links a sibling `../diffbot-typescript` for
+  local development (see CONTRIBUTING).

@@ -22,6 +22,14 @@ After `pnpm test:peer:ai6` (or `:ai7`, or `:latest`) restore the lockfile — th
 git checkout package.json pnpm-lock.yaml && pnpm install --frozen-lockfile
 ```
 
+## Local SDK link (temporary)
+
+`@diffbot/typescript` `^0.5.0` is not on npm yet. `.pnpmfile.cjs` resolves it to a sibling
+`../diffbot-typescript` checkout when that directory exists (build it first; it is dev-only and a
+no-op without the sibling). Set `DIFFBOT_TYPESCRIPT_DIR` to use a different build. CI cannot resolve
+the range until the release. TODO: once 0.5.0 is published, delete `.pnpmfile.cjs` and refresh
+`pnpm-lock.yaml`.
+
 ## Workflows
 
 | Workflow          | Triggers                                          | Secrets                   |

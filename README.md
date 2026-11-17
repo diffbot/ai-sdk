@@ -532,14 +532,19 @@ Each returns (or yields) `DiffbotDocument` objects:
 - `retrieveWebSearch` — `query` (required), `k` (default `10`), `maxTokens`, `snippetLength`, plus
   `fields` / `contentFields` (default `DEFAULT_WEB_CONTENT_FIELDS`) / `documentMapper`.
 - `loadExtract` / `streamExtract` — `urls` (required), `api` (default `analyze`), `fmt` (default
-  `markdown`), `documentMapper(url, raw)`. `metadata` carries `url`, `title`, `pageUrl`,
+  `markdown`), `extractOptions` (the SDK's `ExtractOptions`: `timeout`, `mode`, `fields`, `fallback`,
+  `discussion`, `paging`, `extra`, …), `documentMapper(url, raw)`. `metadata` carries `url`, `title`, `pageUrl`,
   `resolvedPageUrl` and `type`. URLs are fetched one at a time, in order, and an extraction failure
   throws (as in `@diffbot/langchain`): `loadExtract` rejects, while `streamExtract` has already
   yielded the documents before the failing URL.
 - `loadCrawl` / `streamCrawl` — `site` (required), `crawlOptions` (the SDK's `CrawlOptions`; `watch`
   defaults to `true` so URL events are emitted), `eventMapper(event)` returning a document or `null`
   to skip. The default `content` is the crawled URL itself, with `url`, `status` and
-  `crawl_timestamp` in `metadata`.
+  `crawl_timestamp` in `metadata`. Pass `download: true` (or `{ num, type, recordMapper }`) to skip
+  the watch stream: the job is started without `watch`, polled until it finishes, and its extracted
+  records are fetched with the SDK's `crawlDownload`, one document per record (`content` is the
+  record's `content`, falling back to its title; `eventMapper` does not apply). `type: "urls"` is
+  rejected, since that report is CSV.
 
 `defaultCrawlMapper` drops the `job_created` event, so with `watch: false` you get no documents at
 all — that combination only makes sense with an `eventMapper`. Pass `crawlOptions.jobName` if you
@@ -647,7 +652,7 @@ Every runtime export of `@diffbot/ai-sdk`:
 | `diffbotWebSearch`, `diffbotExtract`, `diffbotKnowledgeGraph`, `diffbotEntities`, `diffbotOntology`, `diffbotDqlProbe`, `diffbotAsk` | Model-facing `tool()`  |
 | `diffbotTools`                                                                                                                       | Bundle                 |
 | `retrieveKnowledgeGraph`, `retrieveWebSearch`                                                                                        | Retrieval              |
-| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`                                                     | Loaders                |
+| `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`, `defaultCrawlRecordMapper`                         | Loaders                |
 | `dictToDocument`, `shapeExtractResponse`, `DEFAULT_KG_CONTENT_FIELDS`, `DEFAULT_WEB_CONTENT_FIELDS`                                  | Shaping                |
 | `CrawlEventType`                                                                                                                     | Re-export from the SDK |
 
