@@ -23,10 +23,10 @@ describe("diffbotDqlProbe", () => {
     const out = await runProbe(
       (req) => {
         expect(req.url).toBe(DQL_URL);
-        expect(req.method).toBe("GET");
+        expect(req.method).toBe("POST");
         expect(req.params.get("token")).toBe("test-token");
-        expect(req.params.get("size")).toBe("0");
-        const query = req.params.get("query") ?? "";
+        expect(req.json?.size).toBe(0);
+        const query = String(req.json?.query ?? "");
         const hits = query.includes("Diffbot") ? 5 : 100;
         return jsonResponse({ hits, results: 0 });
       },
@@ -45,7 +45,7 @@ describe("diffbotDqlProbe", () => {
     const queries = ["q0", "q1", "q2", "q3"];
     const out = await runProbe(
       async (req) => {
-        const query = req.params.get("query") ?? "";
+        const query = String(req.json?.query ?? "");
         const delay = (queries.length - queries.indexOf(query)) * 5;
         await new Promise((resolve) => setTimeout(resolve, delay));
         return jsonResponse({ hits: queries.indexOf(query) });

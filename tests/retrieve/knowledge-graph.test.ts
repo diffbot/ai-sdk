@@ -66,8 +66,8 @@ describe("retrieveKnowledgeGraph document mapping", () => {
     const docs = await retrieve(
       (req) => {
         expect(req.url).toBe(DQL_URL);
-        expect(req.method).toBe("GET");
-        expect(req.params.get("query")).toBe("type:Organization");
+        expect(req.method).toBe("POST");
+        expect(req.json?.query).toBe("type:Organization");
         return jsonResponse(SAMPLE_BODY);
       },
       { k: 2, query: "type:Organization" },
@@ -136,7 +136,7 @@ describe("retrieveKnowledgeGraph request wiring", () => {
   it("sends k as the size wire param", async () => {
     await retrieve(
       (req) => {
-        expect(req.params.get("size")).toBe("3");
+        expect(req.json?.size).toBe(3);
         return jsonResponse(SAMPLE_BODY);
       },
       { k: 3, query: "type:Organization" },
@@ -144,9 +144,9 @@ describe("retrieveKnowledgeGraph request wiring", () => {
   });
 
   it("defaults to size 10 and forwards from, filter, exportspec and extra", async () => {
-    const seen: URLSearchParams[] = [];
+    const seen: Array<{ params: URLSearchParams; json: Record<string, unknown> }> = [];
     const handler: MockHandler = (req) => {
-      seen.push(req.params);
+      seen.push({ params: req.params, json: req.json ?? {} });
       return jsonResponse(SAMPLE_BODY);
     };
     await retrieve(handler, { query: "q" });
@@ -158,13 +158,15 @@ describe("retrieveKnowledgeGraph request wiring", () => {
       extra: { nonCanonicalFacts: "true" },
     });
 
-    expect(seen[0]!.get("size")).toBe("10");
-    expect(seen[0]!.has("filter")).toBe(false);
-    expect(seen[1]!.get("from")).toBe("20");
-    expect(seen[1]!.get("filter")).toBe("nbEmployees>50");
-    expect(seen[1]!.get("exportspec")).toBe("name");
-    expect(seen[1]!.get("nonCanonicalFacts")).toBe("true");
-    expect(seen[1]!.get("token")).toBe("test-token");
+    expect(seen[0]!.json.size).toBe(10);
+    expect("filter" in seen[0]!.json).toBe(false);
+    expect(seen[1]!.json).toMatchObject({
+      from: 20,
+      filter: "nbEmployees>50",
+      exportspec: "name",
+      nonCanonicalFacts: "true",
+    });
+    expect(seen[1]!.params.get("token")).toBe("test-token");
   });
 
   it("caps the documents at k even if the server returns more", async () => {
@@ -204,7 +206,7 @@ describe("retrieveKnowledgeGraph request wiring", () => {
     const docs = await retrieve(
       (req) => {
         /* The SDK omits the param for the default format. */
-        expect(req.params.has("format")).toBe(false);
+        expect("format" in (req.json ?? {})).toBe(false);
         return jsonResponse(SAMPLE_BODY);
       },
       { query: "q", format: "json" },
