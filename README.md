@@ -135,7 +135,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotExtract, diffbotWebSearch } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "What does Diffbot sell?",
   tools: {
     webSearch: diffbotWebSearch(),
@@ -194,7 +194,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotWebSearch } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "What has Diffbot shipped recently?",
   tools: {
     webSearch: diffbotWebSearch({
@@ -228,7 +228,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotExtract } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "Summarize https://www.diffbot.com",
   tools: {
     extract: diffbotExtract({ fmt: "markdown" }),
@@ -258,7 +258,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotKnowledgeGraph } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "Name three AI companies headquartered in Boston.",
   tools: {
     knowledgeGraph: diffbotKnowledgeGraph({ size: 10 }),
@@ -284,7 +284,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotEntities } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "Who is mentioned here? Diffbot opened an office in Berlin.",
   tools: {
     entities: diffbotEntities({ lang: "en" }),
@@ -342,7 +342,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotOntology } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "Which Organization fields describe headquarters and headcount?",
   tools: { ontology: diffbotOntology() },
   stopWhen: stepCountIs(4),
@@ -366,7 +366,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotDqlProbe } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "How many Boston AI companies are in the Knowledge Graph? Probe before you guess.",
   tools: {
     probe: diffbotDqlProbe({ workers: 4 }),
@@ -387,7 +387,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotDqlProbe, diffbotKnowledgeGraph, diffbotOntology } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   system: [
     "Look up fields with the ontology before writing DQL.",
     "Probe candidate queries and keep one that is neither empty nor huge.",
@@ -426,7 +426,7 @@ import { generateText, stepCountIs } from "ai";
 import { diffbotAsk } from "@diffbot/ai-sdk";
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: "Who acquired Figma, and when?",
   tools: { ask: diffbotAsk() },
   stopWhen: stepCountIs(3),
