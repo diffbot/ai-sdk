@@ -61,7 +61,7 @@
     "test:workers": "tests/fixtures/worker/dry-run.sh"
   },
   "dependencies": {
-    "@diffbot/typescript": "^0.6.0-rc.0"
+    "@diffbot/typescript": "^0.6.0"
   },
   "peerDependencies": {
     "@ai-sdk/openai-compatible": "^2.0.0 || ^3.0.0",
