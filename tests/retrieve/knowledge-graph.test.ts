@@ -155,7 +155,8 @@ describe("retrieveKnowledgeGraph request wiring", () => {
       from: 20,
       filter: "nbEmployees>50",
       exportspec: "name",
-      extra: { nonCanonicalFacts: "true" },
+      nonCanonicalFacts: true,
+      extra: { report: "1" },
     });
 
     expect(seen[0]!.json.size).toBe(10);
@@ -164,7 +165,8 @@ describe("retrieveKnowledgeGraph request wiring", () => {
       from: 20,
       filter: "nbEmployees>50",
       exportspec: "name",
-      nonCanonicalFacts: "true",
+      nonCanonicalFacts: true,
+      report: "1",
     });
     expect(seen[1]!.params.get("token")).toBe("test-token");
   });

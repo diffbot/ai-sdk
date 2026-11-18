@@ -527,8 +527,10 @@ Each returns (or yields) `DiffbotDocument` objects:
 `{ content: string; metadata: Record<string, unknown> }`. Options beyond the auth ones:
 
 - `retrieveKnowledgeGraph` — `query` (DQL, required), `k` (default `10`), `from`, `filter`,
-  `exportspec`, `extra`, `format` (default `json`; other formats throw, since only JSON can be
-  shaped), plus `fields` / `contentFields` (default `DEFAULT_KG_CONTENT_FIELDS`) / `documentMapper`.
+  `exportspec`, `nonCanonicalFacts`, `extra` (only keys that are not named DQL options; 0.6.0
+  throws if a named key such as `nonCanonicalFacts` is passed through `extra`), `format` (default
+  `json`; other formats throw, since only JSON can be shaped), plus `fields` / `contentFields`
+  (default `DEFAULT_KG_CONTENT_FIELDS`) / `documentMapper`.
 - `retrieveWebSearch` — `query` (required), `k` (default `10`), `maxTokens`, `snippetLength`, plus
   `fields` / `contentFields` (default `DEFAULT_WEB_CONTENT_FIELDS`) / `documentMapper`.
 - `loadExtract` / `streamExtract` — `urls` (required), `api` (default `analyze`), `fmt` (default

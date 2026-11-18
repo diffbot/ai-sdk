@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — Unreleased
+## 0.1.0 - 2026-11-17
 
 First API of `@diffbot/ai-sdk`: Diffbot tools, retrieval helpers, and an OpenAI-compatible provider
 for the Vercel AI SDK (`ai` ^6 or ^7).
@@ -33,6 +33,5 @@ for the Vercel AI SDK (`ai` ^6 or ^7).
 
 ### Changed
 
-- Depends on `@diffbot/typescript` `^0.5.0`, which POSTs DQL. Unit-test mocks now assert the POST
-  JSON body. Until 0.5.0 is on npm, `.pnpmfile.cjs` links a sibling `../diffbot-typescript` for
-  local development (see CONTRIBUTING).
+- Depends on `@diffbot/typescript` `^0.6.0` (cumulative 0.4.0–0.6.0). DQL is POST with a JSON body; the token stays the query parameter. Unit-test mocks already assert that body. The dev-only `.pnpmfile.cjs` sibling link is removed. Refresh `pnpm-lock.yaml` from the registry once 0.6.0 is on npm; do not commit a `link:` or `file:` override.
+- `retrieveKnowledgeGraph` takes `nonCanonicalFacts` as a named boolean. Passing that key through `extra` throws, matching the SDK.

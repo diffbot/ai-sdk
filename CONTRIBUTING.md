@@ -24,24 +24,23 @@ git checkout package.json pnpm-lock.yaml && pnpm install --frozen-lockfile
 
 ## Local SDK link (temporary)
 
-`@diffbot/typescript` `^0.5.0` is not on npm yet. `.pnpmfile.cjs` resolves it to a sibling
-`../diffbot-typescript` checkout when that directory exists (build it first; it is dev-only and a
-no-op without the sibling). Set `DIFFBOT_TYPESCRIPT_DIR` to use a different build. CI cannot resolve
-the range until the release. TODO: once 0.5.0 is published, delete `.pnpmfile.cjs` and refresh
-`pnpm-lock.yaml`.
+The release dependency is `@diffbot/typescript` `^0.6.0`. Do not commit a `file:` / `link:` specifier
+or a `.pnpmfile.cjs`. Until 0.6.0 is on npm, `pnpm-lock.yaml` still points at a sibling link and
+cannot be refreshed from the registry. For a local unit-test run, link a built 0.6.0 checkout and
+restore `pnpm-lock.yaml` before committing.
 
 ## Workflows
 
-| Workflow          | Triggers                                          | Secrets                   |
-| ----------------- | ------------------------------------------------- | ------------------------- |
-| `ci.yml`          | push to `main`, every `pull_request`, dispatch    | **none**                  |
-| `integration.yml` | push to `main`, 1st + 15th at 14:17 UTC, dispatch | `DIFFBOT_API_TOKEN`       |
-| `canary.yml`      | Mondays at 14:17 UTC, dispatch                    | **none**                  |
-| `release.yml`     | `v*` tag; dispatch is a build-only rehearsal      | `NPM_TOKEN` (publish job) |
+| Workflow          | Triggers                                          | Secrets                           |
+| ----------------- | ------------------------------------------------- | --------------------------------- |
+| `ci.yml`          | push to `main`, every `pull_request`, dispatch    | **none**                          |
+| `integration.yml` | push to `main`, 1st + 15th at 14:17 UTC, dispatch | `DIFFBOT_API_TOKEN`               |
+| `canary.yml`      | Mondays at 14:17 UTC, dispatch                    | **none**                          |
+| `release.yml`     | `v*` tag; dispatch is a build-only rehearsal      | **none** (npm trusted publishing) |
 
 `ci.yml` runs lint + typecheck, unit tests + build on Node 20 / 22 / 24, the peer matrix (`ai@6` + `@ai-sdk/openai-compatible@2`, `ai@7` + `@3`), the empty-token live-skip guard, and the Workers bundle check. **It must stay secret-free** — that is what lets every job run on fork PRs.
 
-`release.yml` publishes only from a `v*` tag push: it checks the tag equals `package.json`'s `version` and that `"private"` is no longer `true`, runs lint/typecheck/tests/build, then `pnpm publish --access public --provenance`, then creates the GitHub release. `workflow_dispatch` stops after `pnpm pack`; every publishing step is gated on the tag push, so a dispatch cannot ship a version. To release: bump `version`, commit, tag `vX.Y.Z`, push the tag.
+`release.yml` publishes only from a `v*` tag push: it checks the tag equals `package.json`'s `version` and that `"private"` is not `true`, runs lint/typecheck/tests/build, then `npm publish --access public --provenance` via trusted publishing (OIDC, no `NPM_TOKEN`), then creates the GitHub release. `workflow_dispatch` stops after `pnpm pack`; every publishing step is gated on the tag push, so a dispatch cannot ship a version. To release: bump `version`, commit, tag `vX.Y.Z`, push the tag. npm cannot attach a trusted publisher until the package exists; the first publish of `@diffbot/ai-sdk` needs a one-time manual bootstrap (see the release report) before that tag will succeed.
 
 ## Live tests
 

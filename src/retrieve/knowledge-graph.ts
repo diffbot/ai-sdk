@@ -21,6 +21,12 @@ export interface RetrieveKnowledgeGraphOptions extends DiffbotAuth, DiffbotDocum
   exportspec?: string;
   /** Only `"json"` can be shaped into documents; anything else throws before the request. */
   format?: string;
+  /**
+   * Named DQL option. Do not also put it in `extra` — `@diffbot/typescript` 0.6.0
+   * rejects named keys passed through `extra`.
+   */
+  nonCanonicalFacts?: boolean;
+  /** Body fields that are not named DQL options (`report`, `view`, …). */
   extra?: Record<string, string>;
 }
 
@@ -34,6 +40,7 @@ export async function retrieveKnowledgeGraph(
     filter,
     exportspec,
     format = "json",
+    nonCanonicalFacts,
     extra,
     fields,
     contentFields = DEFAULT_KG_CONTENT_FIELDS,
@@ -59,6 +66,7 @@ export async function retrieveKnowledgeGraph(
     format,
     ...(filter !== undefined ? { filter } : {}),
     ...(exportspec !== undefined ? { exportspec } : {}),
+    ...(nonCanonicalFacts !== undefined ? { nonCanonicalFacts } : {}),
     ...(extra !== undefined ? { extra } : {}),
   });
 
