@@ -4,15 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-pnpmfileChecksum: sha256-ufjlYadkGX1lk1TqT83j9UssZyTlwlfDBdRUTr2Vrwo=
-
 importers:
 
   .:
     dependencies:
       '@diffbot/typescript':
-        specifier: link:../diffbot-typescript
-        version: link:../diffbot-typescript
+        specifier: ^0.6.0-rc.0
+        version: 0.6.0-rc.0
     devDependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^3.0.0
@@ -74,6 +72,10 @@ packages:
   '@ai-sdk/provider@4.0.37':
     resolution: {integrity: sha512-4uPgZ3qiX/JaQFr0dQoibUzHImZit9u05ro2BxGUnJwU4fV28BOAbKUa2OjQvqtM1tMac3bTKkaXdyzGovQXqg==}
     engines: {node: '>=22'}
+
+  '@diffbot/typescript@0.6.0-rc.0':
+    resolution: {integrity: sha512-04XHLNRhi/4JoQ2a2d4RChBGS1ZParIWeDqfjL+mcdkhUanlVJiLwvSBbQO3ttKd1gsPUA7WdcQ0+HaaH6z5Ng==}
+    engines: {node: '>=18'}
 
   '@esbuild/aix-ppc64@0.27.7':
     resolution: {integrity: sha512-EKX3Qwmhz1eMdEJokhALr0YiD0lhQNwDqkPYyPhiSwKrh7/4KRjQc04sZ8db+5DVVnZ1LmbNDI1uAMPEUBnQPg==}
@@ -1427,6 +1429,8 @@ snapshots:
   '@ai-sdk/provider@4.0.37':
     dependencies:
       json-schema: 0.4.0
+
+  '@diffbot/typescript@0.6.0-rc.0': {}
 
   '@esbuild/aix-ppc64@0.27.7':
     optional: true
