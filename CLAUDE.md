@@ -13,7 +13,7 @@ Precedence inside `execute` (lazy): injected `client` → `apiKey` → `resolveT
 
 ## Phase 4 scope (current)
 
-Seven tools plus retrieval/loader helpers: `retrieveKnowledgeGraph`, `retrieveWebSearch`, `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper` (crawl is helpers-only, never a tool). Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). `diffbotAsk` defaults to `timeout: 120_000` when this package builds the client; injected clients keep their own timeout. `diffbotTools()` still builds one shared client, so that default covers the whole bundle when `diffbot_ask` is included. No examples yet (Phase 5). Live coverage is complete: every tool, both retrievers, `loadExtract`, and the provider (`generateText` + `streamText`).
+Seven tools plus retrieval/loader helpers: `retrieveKnowledgeGraph`, `retrieveWebSearch`, `loadExtract`, `streamExtract`, `loadCrawl`, `streamCrawl`, `defaultCrawlMapper`, `defaultCrawlRecordMapper` (crawl is helpers-only, never a tool; `download` opts into start → poll → `crawlDownload`). Provider at `@diffbot/ai-sdk/provider` (`createDiffbot`). `diffbotAsk` defaults to `timeout: 120_000` when this package builds the client; injected clients keep their own timeout. `diffbotTools()` still builds one shared client, so that default covers the whole bundle when `diffbot_ask` is included. No examples yet (Phase 5). Live coverage is complete: every tool, both retrievers, `loadExtract`, and the provider (`generateText` + `streamText`).
 
 ## CI and live tests
 
