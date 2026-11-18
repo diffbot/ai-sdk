@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — Unreleased
+## 0.1.0 - 2026-11-17
 
 First API of `@diffbot/ai-sdk`: Diffbot tools, retrieval helpers, and an OpenAI-compatible provider
 for the Vercel AI SDK (`ai` ^6 or ^7).
@@ -24,3 +24,14 @@ for the Vercel AI SDK (`ai` ^6 or ^7).
   timeout.
 - Examples: `examples/company-research` (tool-calling agent), `examples/manual-rag` (retrieve
   helpers, no tool loop), and `examples/worker` (Workers `env` bag and streamed RAG).
+- `extractOptions` on `diffbotExtract`, `loadExtract`, and `streamExtract` passes the SDK's
+  `ExtractOptions` (`timeout`, `mode`, `fields`, `fallback`, `discussion`, `paging`, …) through to
+  `extract`. The tool's model-facing input schema is unchanged, and `api`/`fmt` defaults stay.
+- Opt-in `download` on `loadCrawl` / `streamCrawl`: start the job without watching, poll it, and
+  map the records from `crawlDownload` to documents (`defaultCrawlRecordMapper`). The default watch
+  stream is unchanged.
+
+### Changed
+
+- Depends on `@diffbot/typescript` `^0.6.0` (cumulative 0.4.0–0.6.0). DQL is POST with a JSON body; the token stays the query parameter. Unit-test mocks already assert that body. The dev-only `.pnpmfile.cjs` sibling link is removed. Refresh `pnpm-lock.yaml` from the registry once 0.6.0 is on npm; do not commit a `link:` or `file:` override.
+- `retrieveKnowledgeGraph` takes `nonCanonicalFacts` as a named boolean. Passing that key through `extra` throws, matching the SDK.

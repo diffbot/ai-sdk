@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@diffbot/typescript':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.6.0
+        version: 0.6.0
     devDependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^3.0.0
@@ -73,8 +73,8 @@ packages:
     resolution: {integrity: sha512-4uPgZ3qiX/JaQFr0dQoibUzHImZit9u05ro2BxGUnJwU4fV28BOAbKUa2OjQvqtM1tMac3bTKkaXdyzGovQXqg==}
     engines: {node: '>=22'}
 
-  '@diffbot/typescript@0.3.0':
-    resolution: {integrity: sha512-VkHiLohAbhUzTNbLL8gwNXAIoTrSfyenAIam5sVLhUGysSkkxuVbNX78BVoU4AlM5pwF3FNEA6Z/5RBRl+TLbQ==}
+  '@diffbot/typescript@0.6.0':
+    resolution: {integrity: sha512-Sdrnk3+4QHo9BzP/hheAweI4L067EKEHXOrK26Lc6F0gLY/RMsifFiJVeolEAnKdI8HfDrUb7K/qBMQkU6DfiA==}
     engines: {node: '>=18'}
 
   '@esbuild/aix-ppc64@0.27.7':
@@ -1430,7 +1430,7 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@diffbot/typescript@0.3.0': {}
+  '@diffbot/typescript@0.6.0': {}
 
   '@esbuild/aix-ppc64@0.27.7':
     optional: true

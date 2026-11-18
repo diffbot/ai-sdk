@@ -12,6 +12,8 @@ export interface MockRequest {
   headers: Headers;
   params: URLSearchParams;
   body?: string;
+  /** `body` parsed as JSON (POST bodies such as DQL); undefined if absent or not JSON. */
+  json?: Record<string, unknown>;
 }
 
 export type MockHandler = (request: MockRequest) => Response | Promise<Response>;
@@ -20,6 +22,18 @@ function toTextBody(body: RequestInit["body"]): string | undefined {
   if (body == null) return undefined;
   if (typeof body === "string") return body;
   return undefined;
+}
+
+function parseJsonBody(body: string | undefined): Record<string, unknown> | undefined {
+  if (body === undefined) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    return parsed !== null && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function createMockFetch(handler: MockHandler): FetchFn {
@@ -36,6 +50,7 @@ export function createMockFetch(handler: MockHandler): FetchFn {
       headers,
       params: parsed.searchParams,
       body,
+      json: parseJsonBody(body),
     });
   };
 }

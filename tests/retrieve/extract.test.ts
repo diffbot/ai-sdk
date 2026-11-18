@@ -104,6 +104,25 @@ describe("loadExtract", () => {
     expect(seen!.params.has("mode")).toBe(false);
   });
 
+  it("forwards extractOptions to every request without dropping api/fmt defaults", async () => {
+    const seen: URLSearchParams[] = [];
+    await load(
+      (req) => {
+        seen.push(req.params);
+        return jsonResponse({ objects: [{ text: "x" }] });
+      },
+      ["https://example.com/a", "https://example.com/b"],
+      { extractOptions: { timeout: 60_000, fallback: "article", discussion: false } },
+    );
+    expect(seen).toHaveLength(2);
+    for (const params of seen) {
+      expect(params.get("timeout")).toBe("60000");
+      expect(params.get("fallback")).toBe("article");
+      expect(params.get("discussion")).toBe("false");
+      expect(params.get("mode")).toBe("llm");
+    }
+  });
+
   it("propagates an extraction failure, like the LangChain loader", async () => {
     const handler: MockHandler = (req) =>
       req.params.get("url")?.endsWith("/bad")

@@ -10,6 +10,7 @@ const EXPECTED_VALUES = [
   "DEFAULT_KG_CONTENT_FIELDS",
   "DEFAULT_WEB_CONTENT_FIELDS",
   "defaultCrawlMapper",
+  "defaultCrawlRecordMapper",
   "dictToDocument",
   "diffbotAsk",
   "diffbotDqlProbe",

@@ -43,6 +43,33 @@ describe("diffbotExtract", () => {
     );
   });
 
+  it("threads factory extractOptions onto the wire", async () => {
+    await runExtract(
+      (req) => {
+        expect(req.url).toBe("https://api.diffbot.com/v3/article");
+        expect(req.params.get("timeout")).toBe("45000");
+        expect(req.params.get("paging")).toBe("false");
+        expect(req.params.get("fields")).toBe("links,meta");
+        expect(req.params.get("mode")).toBeNull();
+        return jsonResponse({ objects: [{ text: "Body." }] });
+      },
+      { url: "https://example.com", api: "article", fmt: "json" },
+      { extractOptions: { timeout: 45_000, paging: false, fields: ["links", "meta"] } },
+    );
+  });
+
+  it("keeps markdown mode and default timeout when no extractOptions are set", async () => {
+    await runExtract(
+      (req) => {
+        expect(req.params.get("mode")).toBe("llm");
+        expect(req.params.get("timeout")).toBe("30000");
+        expect(req.params.has("fields")).toBe(false);
+        return jsonResponse({ objects: [{ text: "Body." }] });
+      },
+      { url: "https://example.com" },
+    );
+  });
+
   it("shapes successful responses", async () => {
     const out = await runExtract(
       () =>

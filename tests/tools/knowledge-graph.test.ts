@@ -25,6 +25,7 @@ describe("diffbotKnowledgeGraph", () => {
     await runDql(
       (req) => {
         expect(req.url).toBe("https://kg.diffbot.com/kg/v3/dql");
+        expect(req.method).toBe("POST");
         expect(req.params.get("token")).toBe("test-token");
         return jsonResponse({ data: [] });
       },
@@ -35,10 +36,13 @@ describe("diffbotKnowledgeGraph", () => {
   it("sends size, from, and filter on the wire", async () => {
     await runDql(
       (req) => {
-        expect(req.params.get("query")).toBe("type:Organization");
-        expect(req.params.get("size")).toBe("5");
-        expect(req.params.get("from")).toBe("20");
-        expect(req.params.get("filter")).toBe("nbEmployees>100");
+        expect(req.json).toMatchObject({
+          query: "type:Organization",
+          size: 5,
+          from: 20,
+          filter: "nbEmployees>100",
+        });
+        expect(req.params.has("query")).toBe(false);
         return jsonResponse({ data: [] });
       },
       { query: "type:Organization", size: 5, from: 20, filter: "nbEmployees>100" },
@@ -48,7 +52,7 @@ describe("diffbotKnowledgeGraph", () => {
   it("defaults size to 10", async () => {
     await runDql(
       (req) => {
-        expect(req.params.get("size")).toBe("10");
+        expect(req.json?.size).toBe(10);
         return jsonResponse({ data: [] });
       },
       { query: "type:Organization" },

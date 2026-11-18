@@ -1,4 +1,4 @@
-import { extract, type JsonObject } from "@diffbot/typescript";
+import { extract, type ExtractOptions, type JsonObject } from "@diffbot/typescript";
 import { type DiffbotAuth, createClientResolver } from "../client.js";
 import { shapeExtractResponse, type DiffbotDocument } from "../documents.js";
 
@@ -8,6 +8,8 @@ export interface LoadExtractOptions extends DiffbotAuth {
   urls: string[];
   api?: string;
   fmt?: string;
+  /** Extra SDK extract options (`timeout`, `mode`, `fields`, `paging`, `extra`, …) for every URL. */
+  extractOptions?: ExtractOptions;
   documentMapper?: ExtractDocumentMapper;
 }
 
@@ -28,12 +30,25 @@ function defaultExtractMapper(url: string, raw: JsonObject): DiffbotDocument {
 export async function* streamExtract(
   options: LoadExtractOptions,
 ): AsyncGenerator<DiffbotDocument, void, undefined> {
-  const { urls, api = "analyze", fmt = "markdown", documentMapper, ...auth } = options;
+  const {
+    urls,
+    api = "analyze",
+    fmt = "markdown",
+    extractOptions,
+    documentMapper,
+    ...auth
+  } = options;
   const client = createClientResolver(auth)();
   const mapper = documentMapper ?? defaultExtractMapper;
 
   for (const url of urls) {
-    const raw = (await extract(client, url, api, fmt)) as JsonObject;
+    const raw = (await extract(
+      client,
+      url,
+      api,
+      fmt,
+      extractOptions as Parameters<typeof extract<string>>[4],
+    )) as JsonObject;
     yield mapper(url, raw);
   }
 }
