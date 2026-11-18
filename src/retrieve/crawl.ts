@@ -90,15 +90,15 @@ function sleep(ms: number): Promise<void> {
 async function* streamCrawlDownload(
   options: StreamCrawlOptions,
 ): AsyncGenerator<DiffbotDocument, void, undefined> {
-  const { site, crawlOptions, download, eventMapper: _unused, ...auth } = options;
-  void _unused;
+  // `createClientResolver` reads only the `DiffbotAuth` keys, so the options pass through whole.
+  const { site, crawlOptions, download } = options;
   const { num, type, recordMapper }: CrawlDownloadLoadOptions =
     download === true ? {} : (download ?? {});
   if (type === "urls") {
     // The URL report is CSV text, not records; the default watch path already covers it.
     throw new TypeError('`download.type` "urls" returns CSV, not records; omit `download` instead');
   }
-  const client = createClientResolver(auth)();
+  const client = createClientResolver(options)();
   const mapper = recordMapper ?? defaultCrawlRecordMapper;
   const pollInterval = crawlOptions?.pollInterval ?? 2000;
 
@@ -135,7 +135,7 @@ async function* streamCrawlDownload(
     ...(type !== undefined ? { type } : {}),
     ...(num !== undefined ? { num } : {}),
   });
-  for (const record of records as CrawlDataRecord[]) {
+  for (const record of records) {
     const doc = mapper(record);
     if (doc !== null) {
       yield doc;
@@ -150,9 +150,8 @@ export async function* streamCrawl(
     yield* streamCrawlDownload(options);
     return;
   }
-  const { site, crawlOptions, eventMapper, download: _download, ...auth } = options;
-  void _download;
-  const client = createClientResolver(auth)();
+  const { site, crawlOptions, eventMapper } = options;
+  const client = createClientResolver(options)();
   const mapper = eventMapper ?? defaultCrawlMapper;
   const opts = resolvedCrawlOptions(crawlOptions);
 
