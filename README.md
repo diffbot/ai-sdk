@@ -719,8 +719,7 @@ and needs no Cloudflare account. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for 
 [`CONTRIBUTING.md`](./CONTRIBUTING.md) is the release process. `release.yml` publishes from a `v*`
 tag that matches `package.json`'s `version` and has a `## [X.Y.Z]` section in `CHANGELOG.md`; the
 GitHub Release notes come from that section, and a version containing `-` is published to npm
-`next` and marked as a GitHub prerelease. A manual dispatch of that workflow runs the gates and
-`npm publish --dry-run` and publishes nothing.
+`next` and marked as a GitHub prerelease. A manual dispatch of that workflow runs the gates and a publish rehearsal and publishes nothing.
 
 ## License
 

@@ -47,7 +47,7 @@ restore `pnpm-lock.yaml` before committing.
 3. `publish` — `npm publish --access public --provenance` via trusted publishing (OIDC, no `NPM_TOKEN`). The dist-tag comes from the version: anything containing `-` goes to `next`, otherwise `latest`, and a final release then also moves `next`. A version already on npm is skipped, so a failed run can be re-run.
 4. `github-release` — creates the GitHub Release with notes taken from that CHANGELOG section, marked as a prerelease when the version contains `-`.
 
-Only a tag push publishes. A `workflow_dispatch` (action `dry-run`, the default) runs `verify`, `gates` and `npm publish --dry-run`, and publishes nothing, even on a tag ref. Action `move-next` only re-points the npm `next` dist-tag at an already-published version.
+Only a tag push publishes. A `workflow_dispatch` (action `dry-run`, the default) runs `verify`, `gates` and a publish rehearsal (`npm publish --dry-run`, or `npm pack` if the version is already on npm), and publishes nothing, even on a tag ref. Action `move-next` only re-points the npm `next` dist-tag at an already-published version.
 
 To release:
 
