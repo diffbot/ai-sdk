@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - 2026-11-17
+## [0.1.0] - 2026-11-17
 
 First API of `@diffbot/ai-sdk`: Diffbot tools, retrieval helpers, and an OpenAI-compatible provider
 for the Vercel AI SDK (`ai` ^6 or ^7).

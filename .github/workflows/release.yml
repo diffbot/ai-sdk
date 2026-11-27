@@ -1,15 +1,32 @@
 name: Release
 
-# Only a `v*` tag publishes. workflow_dispatch exists so the whole pipeline can
-# be rehearsed without releasing: it runs the verify job (lint, typecheck,
-# tests, build, `pnpm pack`) and nothing else. Every step that publishes to npm
-# or creates a GitHub release is gated on a real tag push, so a dispatch — on
-# any branch, by anyone with write access — can never ship a version. A dispatch
-# with action "move-next" instead runs only the move-next job, which re-points
-# the npm `next` dist-tag at an already-published version and publishes nothing.
+# Publishes @diffbot/ai-sdk to npm (trusted publishing, with provenance) and
+# creates the matching GitHub Release. This file follows the shared npm release
+# workflow standard (diffbot-dev-docs: docs/conventions/npm-release-workflow.md);
+# keep it in sync with the other npm TypeScript repos.
 #
-# npm auth is trusted publishing (OIDC). No NPM_TOKEN and no GitHub environment.
-# The package must already exist on npm before a trusted publisher can be added.
+# Jobs: verify (version / tag / CHANGELOG / private flag) -> gates -> publish
+# (npm) -> github-release; move-next is a separate manual action.
+#
+# - Pushing a version tag (v1.2.3, v1.2.3-rc.0) is the only thing that publishes.
+# - workflow_dispatch (action "dry-run", the default) runs every gate plus
+#   `npm publish --dry-run` and publishes nothing, even on a tag ref.
+# - workflow_dispatch with action "move-next" only re-points the npm `next`
+#   dist-tag at an already-published version (see the move-next job).
+#
+# npm auth: trusted publishing (OIDC) only, bound to this file name. No token is
+# passed to npm, so a misconfigured trusted publisher fails the publish instead of
+# silently using a token.
+#
+# Versions: any version containing "-" (1.2.0-rc.0) publishes under the "next"
+# dist-tag ("latest" is untouched) and its GitHub Release is a prerelease. A final
+# version publishes as "latest" and then also moves "next". Release notes come
+# from the "## [1.2.0-rc.0]" CHANGELOG section if there is one, otherwise from the
+# base version's "## [1.2.0]" section.
+#
+# Repo-specific: package.json must not be "private": true; gates run once on
+# Node 22 (lint, typecheck, unit tests, build, `pnpm pack`). The Node and `ai` peer
+# matrices stay in ci.yml, and live tests stay in integration.yml.
 on:
   push:
     tags: ["v*"]
@@ -31,19 +48,73 @@ on:
         required: false
         default: ""
 
+permissions:
+  contents: read
+
+# Re-pushing a tag (or re-dispatching) queues behind an in-flight run for the same
+# ref. A publish must never be cancelled halfway.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-
 jobs:
   verify:
-    name: verify (lint, typecheck, test, build, pack)
+    name: Verify version
     # A move-next dispatch runs only the move-next job below.
     if: github.event_name != 'workflow_dispatch' || inputs.action != 'move-next'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Fail fast if the tag doesn't match package.json, so npm and the GitHub
+      # Release can never report different versions, or if the package is still
+      # marked private.
+      - name: Check tag matches package version
+        id: version
+        run: |
+          set -euo pipefail
+          pkg=$(node -p 'require("./package.json").version')
+          if [ "$(node -p 'String(require("./package.json").private === true)')" = "true" ]; then
+            echo '::error::package.json has "private": true; set it to false before releasing.'
+            exit 1
+          fi
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag=${GITHUB_REF_NAME#v}
+            if [ "$pkg" != "$tag" ]; then
+              echo "::error::Tag v${tag} does not match package.json version ${pkg}. Bump package.json, then re-tag."
+              exit 1
+            fi
+          fi
+          echo "version=${pkg}" >> "$GITHUB_OUTPUT"
+          echo "Versions agree: ${pkg}"
+
+      # Checked before publishing so a tag without release notes fails before
+      # anything reaches npm.
+      - name: Check CHANGELOG.md has a section for this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          # A prerelease (1.2.0-rc.0) may reuse its base version's section (1.2.0).
+          if grep -qF "## [${VERSION}]" CHANGELOG.md; then
+            echo "Found '## [${VERSION}]'."
+          elif [ "${VERSION%%-*}" != "${VERSION}" ] && grep -qF "## [${VERSION%%-*}]" CHANGELOG.md; then
+            echo "Prerelease ${VERSION}: using the '## [${VERSION%%-*}]' section."
+          else
+            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section."
+            exit 1
+          fi
+
+  gates:
+    name: Gates (lint, typecheck, test, build, pack)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,52 +129,21 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      # Dry run of the artifact itself: pack the tarball and list it, so the
-      # `files` field is proven to ship `dist/` + README + LICENSE and nothing
-      # else. Works while the package is still `"private": true` — and so does
-      # `pnpm publish --dry-run`, since npm's EPRIVATE check doesn't fire in
-      # dry-run mode; that would be the stronger rehearsal, exercising the real
-      # packing and registry-resolution path rather than just the tarball.
+      # Pack the tarball and list it, so the `files` field is proven to ship
+      # `dist/` + README + LICENSE and nothing else.
       - name: pnpm pack
         run: |
           pnpm pack --pack-destination "$RUNNER_TEMP"
           tar -tzf "$RUNNER_TEMP"/*.tgz
 
-  # Cheap pre-flight checks: a mistyped tag or an unflipped `private` flag is
-  # reported within seconds instead of at the end of a release. This job runs in
-  # parallel with `verify` rather than ahead of it, so it does not cut `verify`
-  # short — `publish` needs both.
-  guards:
-    name: tag and manifest guards
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Tag must match package.json version
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)."
-            exit 1
-          fi
-          echo "Tag $GITHUB_REF_NAME matches package.json version $version."
-      - name: package.json must not be private
-        run: |
-          if [ "$(node -p "String(require('./package.json').private === true)")" = "true" ]; then
-            echo '::error::package.json still has "private": true — set it to false before tagging a release (PLAN.md §7.4 step 0c).'
-            exit 1
-          fi
-
   publish:
-    name: publish to npm
-    needs: [guards, verify]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    name: Publish to npm
+    needs: [verify, gates]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
-      id-token: write # npm provenance
+      id-token: write # npm trusted publishing (OIDC) and provenance
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,36 +154,42 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      # Trusted publishing needs npm >= 11.5.1; Node 22 ships older. Use npm,
-      # not pnpm, so the OIDC token exchange works. No token is set.
+      # Trusted publishing needs npm >= 11.5.1 and `npm dist-tag` over OIDC needs
+      # >= 11.21.0; Node 22 bundles npm 10. Pinned to a minimum, not `latest`.
       - name: Update npm
         run: |
-          npm install -g npm@latest
+          npm install -g npm@^11.21.0
           npm --version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
 
-      # The dist-tag is derived from the version, not from the tag name: a
-      # prerelease (anything containing a `-`, e.g. 0.1.0-rc.1) publishes as
-      # `next` so a plain `npm install @diffbot/ai-sdk` keeps resolving to the
-      # last stable release. The guards above already proved the git tag equals
-      # this version.
-      - name: Publish to npm
+      # npm, not pnpm, so the OIDC token exchange works. --ignore-scripts: dist/ was
+      # built above, so no lifecycle script may rebuild it.
+      - name: Publish
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           set -euo pipefail
-          name="$(node -p "require('./package.json').name")"
-          version="$(node -p "require('./package.json').version")"
-          case "$version" in
-            *-*) dist_tag=next ;;
-            *) dist_tag=latest ;;
-          esac
-          if npm view "${name}@${version}" version >/dev/null 2>&1; then
-            echo "${name}@${version} is already on npm; skipping publish."
+          name=$(node -p 'require("./package.json").name')
+          # The dist-tag comes from the version, not the tag name: a prerelease
+          # (1.2.0-rc.0) goes to "next", never "latest".
+          case "$VERSION" in *-*) dist_tag=next ;; *) dist_tag=latest ;; esac
+
+          # Only a tag push publishes. A manual dispatch (even on a tag ref) is a dry run.
+          if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            echo "Not a tag push: dry run only."
+            npm publish --dry-run --access public --ignore-scripts --tag "$dist_tag"
             exit 0
           fi
-          echo "Publishing $version with --tag $dist_tag (npm trusted publishing)."
-          # --ignore-scripts: dist/ was built above. No NODE_AUTH_TOKEN; npm
-          # authenticates with the trusted publisher on npmjs.com.
+
+          # Lets a failed run be re-run after the npm step already succeeded.
+          if npm view "${name}@${VERSION}" version >/dev/null 2>&1; then
+            echo "${name}@${VERSION} is already on npm; skipping publish."
+            exit 0
+          fi
+
+          # Trusted publishing (OIDC) only; no token is exported.
+          echo "Publishing ${name}@${VERSION} with dist-tag ${dist_tag} via npm trusted publishing."
           npm publish --access public --provenance --ignore-scripts --tag "$dist_tag"
 
       # A final release also moves `next`, so `next` is never behind `latest`.
@@ -167,29 +213,62 @@ jobs:
           fi
 
   github-release:
-    name: create GitHub release
-    needs: publish
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    name: Publish GitHub Release
+    needs: [verify, publish]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only for real tag pushes; a dispatch runs just the gates + publish dry run.
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     permissions:
-      contents: write # the only job that writes to the repo
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: gh release create
+
+      - name: Extract release notes from CHANGELOG.md
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           set -euo pipefail
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists; leaving it."
-          else
-            gh release create "$GITHUB_REF_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$GITHUB_REF_NAME" \
-              --generate-notes
+          # Everything after "## [VERSION]" up to the next "## " heading. A prerelease
+          # without its own section uses its base version's section.
+          hdr_version="${VERSION}"
+          if ! grep -qF "## [${VERSION}]" CHANGELOG.md; then
+            hdr_version="${VERSION%%-*}"
           fi
+          awk -v hdr="## [${hdr_version}]" '
+            index($0, hdr) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > "${RUNNER_TEMP}/notes.md"
+          if ! grep -q '[^[:space:]]' "${RUNNER_TEMP}/notes.md"; then
+            echo "::error::CHANGELOG.md section for ${VERSION} is empty."
+            exit 1
+          fi
+          wc -l "${RUNNER_TEMP}/notes.md"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          repo="${GITHUB_REPOSITORY}"
+          if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            echo "Release $tag already exists; leaving its notes as they are."
+            exit 0
+          fi
+          # Any version containing "-" (1.2.0-rc.0) is a GitHub prerelease.
+          prerelease=()
+          case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$tag" \
+            --repo "$repo" \
+            --title "$tag" \
+            --verify-tag \
+            --notes-file "${RUNNER_TEMP}/notes.md" \
+            "${prerelease[@]}"
 
   # Manual only (action: move-next). Points `next` at a version that is already
   # on npm, e.g. after a final release whose "Point next at final release" step
@@ -216,7 +295,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Update npm
         run: |
-          npm install -g npm@latest
+          npm install -g npm@^11.21.0
           npm --version
       - name: Point next at an existing version
         env:
